@@ -13,7 +13,7 @@
 struct PolyMap
     dim::Int
     max_order::Int
-    map::Matrix{Int}
+    map::Matrix{UInt8}  # UInt8 sufficient: max exponent ≤ max_order < 256
 
     function PolyMap(dim::Int, order::Int)
         new(dim, order, setindexmap(dim, order))
@@ -78,11 +78,10 @@ end
 
 function setindexmap(dim::Int, max_order::Int)
     totallength = binomial(max_order + dim, dim)
-    # map = [decomposite(i, dim) for i in 0:totallength-1]
-    # create map as a matrix
-    map = zeros(Int, totallength, dim + 1)
+    # UInt8 is 8× more cache-friendly than Int64; max exponent ≤ max_order ≤ 127 in practice
+    map = zeros(UInt8, totallength, dim + 1)
     for i in 0:totallength-1
-        map[i + 1, :] = decomposite(i, dim)
+        map[i + 1, :] = decomposite(i, dim)  # Julia converts Int → UInt8 on assignment
     end
     return map
 end

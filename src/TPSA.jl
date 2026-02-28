@@ -9,12 +9,17 @@
 
 
 module TPSA
+using StaticArrays
 include("mathfunc.jl")
 include("polymap.jl")
 include("ctps.jl")
-using StaticArrays
 export CTPS, TPSADesc, pow, cst, element, findindex, assign!, reassign!
-export add!, addto!, sub!, subfrom!, scale!, copy!, zero!, mul!
+export add!, addto!, sub!, subfrom!, scale!, scaleadd!, copy!, zero!, mul!
 export set_descriptor!, get_descriptor, clear_descriptor!
+export TPSAWorkspace, borrow!, release!
+export sin!, cos!, exp!, log!, sqrt!, sinh!, cosh!
+export pow!
+include("macro.jl")
+export @tpsa
 
 end

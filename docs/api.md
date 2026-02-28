@@ -1,342 +1,372 @@
 # API Reference
 
-Complete API reference for TPSA.jl
+Complete reference for all public types and functions in TPSA.jl.
+
+---
 
 ## Types
 
-### `CTPS{T<:Number}`
+### `CTPS{T}`
 
-The main TPSA type representing a truncated power series.
+The core type representing a truncated power series with coefficient type `T`.
 
-**Fields:**
-- `c::Vector{T}`: Coefficient vector
-- `desc::TPSADesc`: Descriptor (shared metadata)
-- `degree_mask::Vector{Bool}`: Degree activation mask
+```julia
+struct CTPS{T}
+    c           :: Vector{T}       # coefficient vector, length desc.N
+    desc        :: TPSADesc        # shared descriptor
+    degree_mask :: Ref{UInt64}     # bitmask — bit k set iff degree-k block is active
+end
+```
+
+The coefficient vector is ordered by total degree, then lexicographically:
+index 1 is the constant term; indices 2…nv+1 are the degree-1 (linear) terms; and so on.
 
 **Constructors:**
 
 ```julia
-CTPS(value::T, nv::Int, order::Int) where T<:Number
+CTPS(a::Real, var_index::Int)   # variable x_{var_index} expanded around a
+CTPS(a::Real)                   # scalar constant a
+CTPS(T::Type)                   # all-zero series (use as pre-allocated output)
 ```
-Create a constant TPSA.
 
-```julia
-CTPS(value::T, nv::Int, order::Int, var_index::Int) where T<:Number
-```
-Create a TPSA representing a variable.
+All constructors use the descriptor registered with `set_descriptor!`.
 
-**Examples:**
-```julia
-# Constant
-c = CTPS(5.0, 3, 4)
-
-# Variable
-x = CTPS(1.0, 3, 4, 2)
-```
+---
 
 ### `TPSADesc`
 
-Descriptor containing shared metadata for TPSA operations.
-
-**Fields:**
-- `nv::Int`: Number of variables
-- `order::Int`: Maximum order
-- `N::Int`: Total number of coefficients
-- `Nd::Vector{Int}`: Number of terms per degree
-- `off::Vector{Int}`: Offset for each degree
-- `polymap::PolyMap`: Index to exponent mapping
-- `exp_to_idx::Dict`: Reverse mapping
-- `mul::Vector{MulScheduleInputMajor}`: Input-major multiplication schedules
-- `mul_output::Vector{MulScheduleOutputMajor}`: Output-major schedules
-- `comp_plan::CompPlan`: Composition plan
-
-### `PolyMap`
-
-Polynomial index mapping structure.
-
-**Fields:**
-- `dim::Int`: Number of dimensions
-- `max_order::Int`: Maximum order
-- `map::Matrix{Int}`: Index to exponent matrix
-
-## Core Functions
-
-### Creation
+Descriptor holding shared metadata for a TPSA space `(nv, order)`.
 
 ```julia
-CTPS(value, nv, order, [var_index])
-```
-Create a TPSA object.
-
-**Arguments:**
-- `value`: Initial value (constant term)
-- `nv`: Number of variables
-- `order`: Maximum order
-- `var_index`: Optional variable index (2 to nv+1)
-
-**Returns:** `CTPS` object
-
-### Assignment
-
-```julia
-assign!(dest::CTPS, src::CTPS)
-```
-Copy all coefficients from `src` to `dest`.
-
-```julia
-reassign!(tpsa::CTPS, value)
-```
-Reset TPSA to a new value.
-
-### Coefficient Access
-
-```julia
-element(tpsa::CTPS, index::Int)
-```
-Get coefficient at given index.
-
-```julia
-cst(tpsa::CTPS)
-```
-Get constant term (coefficient at index 1).
-
-### Index Operations
-
-```julia
-findindex(desc::TPSADesc, exponents)
-```
-Find index for monomial with given exponent vector.
-
-```julia
-TPSA.getindexmap(polymap::PolyMap, index::Int)
-```
-Get exponent vector for given index.
-
-**Returns:** View of exponent array `[degree, exp1, exp2, ...]`
-
-## Arithmetic Operations
-
-### Basic Arithmetic
-
-```julia
-+(x::CTPS, y::CTPS)
-+(x::CTPS, c::Number)
-+(c::Number, x::CTPS)
-```
-Addition of TPSA objects or with scalars.
-
-```julia
--(x::CTPS, y::CTPS)
--(x::CTPS, c::Number)
--(c::Number, x::CTPS)
--(x::CTPS)  # Unary minus
-```
-Subtraction and negation.
-
-```julia
-*(x::CTPS, y::CTPS)
-*(x::CTPS, c::Number)
-*(c::Number, x::CTPS)
-```
-Multiplication.
-
-```julia
-/(x::CTPS, c::Number)
-```
-Division by scalar.
-
-```julia
-^(x::CTPS, n::Integer)
-```
-Integer power.
-
-### In-place Operations
-
-```julia
-TPSA.mul!(result::CTPS, x::CTPS, y::CTPS)
-```
-In-place multiplication: `result = x * y`
-
-```julia
-TPSA.update_degree_mask!(tpsa::CTPS)
-```
-Update the degree activation mask based on non-zero coefficients.
-
-## Mathematical Functions
-
-### Exponential and Logarithmic
-
-```julia
-TPSA.exp(x::CTPS)
-```
-Exponential function $e^x$.
-
-```julia
-TPSA.log(x::CTPS)
-```
-Natural logarithm.
-
-```julia
-TPSA.log10(x::CTPS)
-```
-Base-10 logarithm.
-
-### Trigonometric Functions
-
-```julia
-TPSA.sin(x::CTPS)
-TPSA.cos(x::CTPS)
-TPSA.tan(x::CTPS)
-```
-Sine, cosine, and tangent.
-
-```julia
-TPSA.asin(x::CTPS)
-TPSA.acos(x::CTPS)
-TPSA.atan(x::CTPS)
-```
-Inverse trigonometric functions.
-
-### Hyperbolic Functions
-
-```julia
-TPSA.sinh(x::CTPS)
-TPSA.cosh(x::CTPS)
-TPSA.tanh(x::CTPS)
-```
-Hyperbolic sine, cosine, and tangent.
-
-### Power and Root Functions
-
-```julia
-TPSA.sqrt(x::CTPS)
-```
-Square root.
-
-```julia
-TPSA.pow(x::CTPS, n::Int)
-```
-Power function $x^n$.
-
-## Internal Functions
-
-### Index Mapping
-
-```julia
-TPSA.decomposite(n::Int, dim::Int)
-```
-Decompose integer to exponent vector.
-
-**Arguments:**
-- `n`: Index to decompose
-- `dim`: Number of dimensions
-
-**Returns:** Vector of exponents `[degree, exp1, exp2, ..., exp_dim]`
-
-### Descriptor Management
-
-Descriptors are automatically cached. Manual cache access:
-
-```julia
-TPSA.DESC_CACHE
-```
-Global cache dictionary mapping `(nv, order)` to `TPSADesc`.
-
-## Utilities
-
-### Display
-
-```julia
-Base.show(io::IO, tpsa::CTPS)
-```
-Display TPSA object with non-zero coefficients.
-
-### Type Queries
-
-```julia
-eltype(tpsa::CTPS)
-```
-Get element type of coefficient vector.
-
-```julia
-length(tpsa::CTPS)
-```
-Get number of coefficients.
-
-## Example Usage
-
-### Basic Example
-
-```julia
-using TPSA
-
-# Setup
-nv, order = 3, 4
-x = CTPS(1.0, nv, order, 2)
-y = CTPS(1.0, nv, order, 3)
-
-# Operations
-f = x^2 + 2*x*y + y^2
-g = TPSA.exp(x) * TPSA.sin(y)
-
-# Access coefficients
-constant = f.c[1]
-desc = f.desc
-exp_vec = TPSA.getindexmap(desc.polymap, 5)
-```
-
-### Advanced Example
-
-```julia
-# Extract Jacobian matrix
-outputs = [f1, f2, f3, f4]  # CTPS objects
-jacobian = zeros(4, 4)
-
-for (i, output) in enumerate(outputs)
-    desc = output.desc
-    for j in 1:4
-        # Find linear term for variable j
-        for idx in 1:desc.N
-            exp_vec = TPSA.getindexmap(desc.polymap, idx)
-            if exp_vec[1] == 1 && exp_vec[j+1] == 1
-                jacobian[i, j] = output.c[idx]
-                break
-            end
-        end
-    end
+struct TPSADesc
+    nv        :: Int                    # number of variables
+    order     :: Int                    # maximum total degree
+    N         :: Int                    # total coefficient count = C(nv+order, nv)
+    Nd        :: Vector{Int}            # Nd[d+1] = number of monomials of total degree d
+    off       :: Vector{Int}            # off[d+1] = 1-based start index of degree-d block
+    polymap   :: PolyMap                # index → exponent mapping
+    exp_to_idx :: Dict                  # SVector{nv,UInt8} → Int (reverse lookup)
+    mul       :: ...                    # 2-D multiplication schedules
+    comp_plan :: ...                    # composition plan
 end
 ```
 
-## Performance Considerations
+Obtain via `get_descriptor()` after calling `set_descriptor!`.
 
-### Memory Layout
+**Useful fields:**
+- `desc.N` — total number of coefficients per series
+- `desc.nv`, `desc.order` — space parameters
+- `desc.off[d+1]` — 1-based start of degree-`d` block in coefficient vector
+- `TPSA.getindexmap(desc.polymap, i)` — exponent info for coefficient index `i`
 
-Coefficients are stored contiguously in the `c` vector ordered by:
-1. Degree (0, 1, 2, ...)
-2. Lexicographic order within each degree
+---
 
-### Multiplication Schedules
+### `TPSAWorkspace`
 
-Two schedule types optimize different execution contexts:
+Pre-allocated pool of `CTPS{Float64}` objects for zero-allocation in-place code.
 
-- **Input-major**: Better cache locality for sequential CPU
-- **Output-major**: Thread-safe, ideal for GPU/parallel
-
-The package automatically uses the appropriate schedule.
-
-### Type Stability
-
-For best performance, use concrete types:
 ```julia
-# Good - type stable
-x = CTPS(Float64, nv, order)
-
-# Avoid - type unstable
-x = CTPS(some_value, nv, order)  # where some_value has dynamic type
+ws = TPSAWorkspace(desc::TPSADesc, n::Int = 32)
 ```
 
-## See Also
+Creates a pool of `n` CTPS slots of the same shape as `desc`.
 
-- [Examples](../examples/)
-- [Main Documentation](index.md)
-- [Package README](../README.md)
+---
+
+### `PolyMap`
+
+Internal mapping structure (accessed via `TPSADesc`).
+
+```julia
+struct PolyMap
+    dim       :: Int             # nv
+    max_order :: Int             # order
+    map       :: Matrix{UInt8}   # map[i, 1] = total degree; map[i, v+1] = exp of var v
+end
+```
+
+---
+
+## Descriptor management
+
+```julia
+set_descriptor!(nv::Int, order::Int)
+```
+Create a descriptor for a space with `nv` variables and maximum degree `order`,
+and register it as the thread-local default.
+
+```julia
+desc = get_descriptor()
+```
+Return the current thread-local descriptor.  Throws if none is registered.
+
+```julia
+clear_descriptor!()
+```
+Deregister the thread-local descriptor.
+
+---
+
+## Construction
+
+```julia
+CTPS(a::Real, var_index::Int)
+```
+Create the identity map variable $x_i$ at expansion point $a$:
+`c[1] = a`, `c[var_index + 1] = 1.0`, all other coefficients zero.
+
+```julia
+CTPS(a::Real)
+```
+Create a CTPS whose only non-zero coefficient is the constant term:
+`c[1] = a`.
+
+```julia
+CTPS(T::Type)
+```
+Allocate an all-zero CTPS with coefficient type `T`.
+Equivalent to a pre-allocated output slot.
+
+```julia
+CTPS(src::CTPS{T})
+```
+Deep copy of `src` (copies only the active degree range).
+
+---
+
+## Arithmetic operators
+
+All operators below return a new `CTPS`; inputs are not modified.
+
+```julia
++(f, g), -(f, g), *(f, g)    # CTPS × CTPS
++(f, a), -(f, a), *(f, a)    # CTPS × scalar (a::Real)
++(a, f), -(a, f), *(a, f)    # scalar × CTPS
+-(f)                          # unary negation
+^(f, n::Int)                  # integer power (binary exponentiation)
+```
+
+---
+
+## Mathematical functions
+
+### Allocating (return new `CTPS`)
+
+| Function | Mathematical meaning |
+|---------|---------------------|
+| `exp(f)` | $e^f$ |
+| `log(f)` | $\ln f$ — requires `cst(f) > 0` |
+| `sqrt(f)` | $\sqrt{f}$ — requires `cst(f) > 0` |
+| `pow(f, n::Int)` | $f^n$ — equivalent to `f^n` |
+| `sin(f)` | $\sin f$ |
+| `cos(f)` | $\cos f$ |
+| `tan(f)` | $\tan f$ |
+| `asin(f)` | $\arcsin f$ |
+| `acos(f)` | $\arccos f$ |
+| `sinh(f)` | $\sinh f$ |
+| `cosh(f)` | $\cosh f$ |
+
+### In-place (`!` variants — write into pre-allocated `out::CTPS`)
+
+```julia
+exp!(out, f);   log!(out, f);   sqrt!(out, f);   pow!(out, f, n::Int)
+sin!(out, f);   cos!(out, f)
+sinh!(out, f);  cosh!(out, f)
+```
+
+The `!` variants use `_zero_active!` internally: only the active degree range is
+zeroed before recomputing, giving O(active) cost instead of O(N).
+
+---
+
+## In-place arithmetic
+
+The following functions write their result into a **pre-allocated** first argument
+and return `nothing`.  No heap allocation occurs.
+
+```julia
+add!(out::CTPS, a::CTPS, b::CTPS)        # out = a + b
+add!(out::CTPS, a::CTPS, s::T)           # out = a + s  (scalar s)
+sub!(out::CTPS, a::CTPS, b::CTPS)        # out = a - b
+mul!(out::CTPS, a::CTPS, b::CTPS)        # out = a * b
+scale!(out::CTPS, a::CTPS, s::T)         # out = s * a
+scaleadd!(out, s1, a, s2, b)             # out = s1*a + s2*b  (fused, single pass)
+addto!(a::CTPS, b::CTPS)                 # a += b  (modifies a)
+subfrom!(a::CTPS, b::CTPS)              # a -= b  (modifies a)
+copy!(dest::CTPS, src::CTPS)             # dest ← src  (active range only)
+zero!(a::CTPS)                           # zero all N coefficients
+```
+
+`scaleadd!` is the preferred primitive for linear combinations; it avoids a
+temporary and processes both inputs in a single pass.
+
+---
+
+## Workspace pool
+
+```julia
+ws = TPSAWorkspace(desc, n)    # create pool of n Float64 CTPS slots
+t  = borrow!(ws)               # get a zeroed CTPS from the pool
+release!(ws, t)                # return t to pool (active range zeroed)
+```
+
+`borrow!` pops from a stack of pre-allocated objects.  `release!` calls
+`_zero_active!` on the returned slot (O(active) zeroing) and pushes it back.
+
+**The pool is not thread-safe.** Create one workspace per thread.
+
+---
+
+## `@tpsa` macro
+
+```julia
+@tpsa ws  lhs = expr
+```
+
+Compiles `expr` into a sequence of zero-allocation in-place calls, writing the
+final result into the pre-allocated `CTPS` object `lhs`.  Temporaries are
+borrowed from `ws::TPSAWorkspace` and released as soon as they are no longer
+needed.
+
+**Supported operations in `expr`:**
+`+`, `-`, `*`, unary `-`, `^n` (integer `n`),
+`sin`, `cos`, `exp`, `log`, `sqrt`, `sinh`, `cosh`.
+Scalars (`Real`) may appear as either operand to `+`, `-`, `*`.
+
+**Restrictions:**
+- `lhs` must be a pre-allocated `CTPS` object.
+- `lhs` must not appear on the right-hand side (no self-referential expressions).
+- The workspace `ws` must not be shared across threads.
+
+---
+
+## Coefficient access
+
+```julia
+cst(f::CTPS) -> T
+```
+Return the constant term `f.c[1]`.
+
+```julia
+element(f::CTPS, exps::Vector{Int}) -> T
+```
+Return the coefficient of the monomial $x_1^{e_1} \cdots x_{nv}^{e_{nv}}$
+where `exps = [e_1, …, e_nv]` (length `nv`, no degree prefix).
+
+```julia
+findindex(f::CTPS, exps::Vector{Int}) -> Int
+```
+Return the 1-based index into `f.c` for the monomial described by `exps`.
+The index can be reused with `f.c[idx]` directly.
+
+```julia
+TPSA.getindexmap(desc.polymap, i::Int) -> view
+```
+Return a view `[degree, e₁, e₂, …, e_nv]` for coefficient index `i`.
+Useful for iterating over all monomials:
+
+```julia
+for i in 1:desc.N
+    v = f.c[i]; iszero(v) && continue
+    row = TPSA.getindexmap(desc.polymap, i)
+    # row[1] = total degree; row[k+1] = exponent of variable k
+end
+```
+
+---
+
+## Assign / reassign
+
+```julia
+assign!(ctps::CTPS, a::Real)
+```
+Set the constant term to `a` without touching other coefficients.
+
+```julia
+reassign!(ctps::CTPS, a::Real, var_index::Int)
+```
+Reset `ctps` to the variable $x_{var\_index}$ at expansion point `a`
+(fills the full coefficient vector with zeros, then sets `c[1] = a`, `c[var_index+1] = 1`).
+
+---
+
+## Descriptor utilities
+
+```julia
+TPSA.decomposite(n::Int, dim::Int) -> Vector{Int}
+```
+Decompose coefficient index `n` (0-based) into an exponent vector of length `dim+1`:
+entry 1 is the total degree, entries 2…dim+1 are per-variable exponents.
+
+---
+
+## See also
+
+- [Tutorial](tutorial.md) — worked examples for all features
+- [index.md](index.md) — overview, performance notes, and Enzyme interoperability guide
+- [`examples/`](../examples/) — complete runnable scripts
+- [`examples/07_enzyme_ad.jl`](../examples/07_enzyme_ad.jl) — nested AD with Enzyme
+- [`benchmarks/`](../benchmarks/) — performance measurement scripts
+
+---
+
+## Enzyme / AD interoperability
+
+TPSA.jl is compatible with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl).
+Enzyme can differentiate *through* TPSA computations, giving exact
+first-order sensitivities of any Taylor coefficient with respect to scalar
+"design" parameters.
+
+### Compatible operations
+
+All allocating forms are Enzyme-compatible:
+
+```julia
+# ✓ Arithmetic operators
+f + g,  f - g,  f * g,  f / g,  -f,  f^n
+f + a,  a + f,  f - a,  a*f  ...
+
+# ✓ Math functions (allocating)
+exp(f), log(f), sqrt(f), pow(f, n)
+sin(f), cos(f), tan(f), asin(f), acos(f)
+sinh(f), cosh(f)
+```
+
+### Incompatible operations (do not differentiate through)
+
+```julia
+# ✗ In-place / pool-based variants — mutate shared workspace slots
+exp!(out, f);  sin!(out, f);  mul!(out, a, b) ...
+```
+
+Use the allocating forms instead when building a function intended for
+Enzyme differentiation.
+
+### Usage pattern
+
+```julia
+using TPSA, Enzyme
+
+# set_descriptor! must be called OUTSIDE the differentiated function.
+set_descriptor!(1, 4)          # ← outside
+
+# Use the expansion center as the parameter.
+function map_coeff(x0::Float64)
+    t  = CTPS(x0, 1)           # x0 is the parameter
+    return element(exp(t), [3])  # 3rd Taylor coefficient = exp(x0)/6
+end
+
+# First derivative w.r.t. x0
+grad = Enzyme.gradient(Reverse, map_coeff, 0.3)   # (exp(0.3)/6,)
+
+# Multi-variable: set descriptor outside, use expansion center as parameter
+set_descriptor!(2, 3)
+function f_mv(x0::Float64)
+    x = CTPS(x0, 1);  y = CTPS(0.5, 2)   # y expansion center fixed
+    return cst(sin(x) * cos(y) + exp(x))
+end
+Enzyme.gradient(Reverse, f_mv, 0.7)
+```
+
+See [`examples/07_enzyme_ad.jl`](../examples/07_enzyme_ad.jl) for a complete
+worked example with finite-difference verification.

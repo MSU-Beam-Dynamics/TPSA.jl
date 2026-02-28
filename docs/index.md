@@ -1,49 +1,39 @@
 # TPSA.jl Documentation
 
-Welcome to the TPSA.jl (Truncated Power Series Algebra) documentation.
+TPSA.jl implements **Truncated Power Series Algebra** — a technique for computing
+multivariate Taylor expansions of arbitrary functions to user-specified order.
+It overloads Julia's standard arithmetic operators and mathematical functions so
+that code written for plain numbers automatically computes exact Taylor series
+when given `CTPS` inputs.
 
 ## Overview
 
-TPSA.jl is a Julia package for automatic differentiation and nonlinear analysis using truncated power series algebra. It efficiently computes Taylor expansions of arbitrary functions to high orders, making it ideal for:
+### What is TPSA?
 
-- Beam dynamics and accelerator physics
-- Nonlinear dynamics and chaos theory
-- Perturbation analysis
-- Automatic differentiation to arbitrary order
-- Normal form analysis
+A `CTPS` (Coefficient-based Taylor Power Series) object represents a function as
+a truncated multivariate polynomial:
 
-## Quick Start
+$$f(x_1, \dotsc, x_n) \approx \sum_{|\alpha| \le d} c_\alpha\, x_1^{\alpha_1} \cdots x_n^{\alpha_n}$$
 
-```julia
-using TPSA
+where $|\alpha| = \alpha_1 + \dotsb + \alpha_n$ and $d$ is the chosen maximum order.
 
-# Set up the global descriptor (do this once at the start)
-set_descriptor!(3, 4)  # 3 variables, maximum order 4
+All $\binom{n+d}{d}$ coefficients are stored contiguously, ordered first by total
+degree, then lexicographically within each degree.
 
-# Create variables - simple and clean!
-x = CTPS(0.0, 1)  # variable x
-y = CTPS(0.0, 2)  # variable y
-z = CTPS(0.0, 3)  # variable z
+### What can you do with it?
 
-# Create constants
-c = CTPS(5.0)     # constant 5.0
+- **Automatic differentiation to arbitrary order** — partial derivatives of any
+  order appear directly as (rescaled) coefficients.
+- **Nonlinear map propagation** — push a truncated series through a sequence of
+  operations exactly (no finite-difference error).
+- **Computing Jacobians, Hessians, and higher-order tensors** without writing
+  symbolic formulas.
+- **Beam dynamics / perturbation theory** — the original use case; every TPSA
+  coefficient encodes a transfer-matrix element or perturbation coefficient.
 
-# Perform calculations
-f = x^2 + 2*x*y + y^2
-g = exp(x) * sin(y)
-h = (1 + x + y)^3
-```
+## Getting started
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Basic Concepts](#basic-concepts)
-- [Core Types](#core-types)
-- [Operations](#operations)
-- [Mathematical Functions](#mathematical-functions)
-- [Examples](#examples)
-- [API Reference](#api-reference)
-- [Performance Tips](#performance-tips)
+See the **[Tutorial](tutorial.md)** for a step-by-step walkthrough.
 
 ## Installation
 
@@ -52,277 +42,218 @@ using Pkg
 Pkg.add("TPSA")
 ```
 
-Or from the Julia REPL package manager:
-```
-] add TPSA
-```
-
-## Basic Concepts
-
-### Truncated Power Series
-
-A truncated power series represents a multivariate function as:
-
-$$f(x_1, x_2, ..., x_n) = \sum_{|\alpha| \leq d} c_\alpha x_1^{\alpha_1} x_2^{\alpha_2} \cdots x_n^{\alpha_n}$$
-
-where $|\alpha| = \alpha_1 + \alpha_2 + ... + \alpha_n$ is the total degree and $d$ is the maximum order.
-
-### Variables and Descriptors
-
-- **Variables (nv)**: Number of independent variables in your system
-- **Order**: Maximum degree of monomials to track
-- **Descriptor**: Shared metadata that defines the TPSA space
-
-All TPSA objects with the same `(nv, order)` share a descriptor for efficiency.
-
-## Core Types
-
-### CTPS (Complex/Real TPSA)
+## Basic workflow
 
 ```julia
-CTPS(value::Number, nv::Int, order::Int, [var_index::Int])
+using TPSA
+
+# 1. Register the global descriptor (once per thread / session)
+set_descriptor!(3, 6)          # 3 independent variables, max order 6
+
+# 2. Create variables
+x = CTPS(0.0, 1)               # x₁, expansion point 0
+y = CTPS(0.0, 2)               # x₂
+z = CTPS(0.0, 3)               # x₃
+
+# 3. Compute — identical syntax to scalar code
+f = exp(x) * sin(y + z^2)
+
+# 4. Inspect coefficients
+println(cst(f))                 # constant term f(0,0,0)
+println(element(f, [1,0,0]))   # ∂f/∂x|₀
+println(element(f, [0,1,0]))   # ∂f/∂y|₀
+println(element(f, [1,1,0]))   # ∂²f/(∂x ∂y)|₀
 ```
 
-Creates a TPSA object representing either:
-- A constant (if `var_index` is omitted)
-- A variable (if `var_index` is provided)
+## Key types
 
-**Parameters:**
-- `value`: Initial constant value
-- `nv`: Number of variables
-- `order`: Maximum order
-- `var_index`: Optional index to make this a variable (2 ≤ var_index ≤ nv+1)
+`CTPS{T}` is the only type end users construct directly.  It holds the coefficient
+vector `c::Vector{T}` (length `desc.N`) and tracks which degree blocks are active
+via a `degree_mask` bitmask.  Everything else (`TPSADesc`, `TPSAWorkspace`) is
+either obtained from helper functions (`get_descriptor()`, `TPSAWorkspace(desc, n)`)
+or used only in the advanced zero-allocation API.
 
-**Examples:**
-```julia
-# Create a constant
-c = CTPS(5.0, 3, 4)
+## Key functions
 
-# Create variables
-x = CTPS(1.0, 3, 4, 2)  # First variable
-y = CTPS(1.0, 3, 4, 3)  # Second variable
-z = CTPS(1.0, 3, 4, 4)  # Third variable
+### Descriptor management
+
+| Function | Description |
+|----------|-------------|
+| `set_descriptor!(nv, order)` | Create and register a global descriptor |
+| `get_descriptor()` | Retrieve the current thread-local descriptor |
+| `clear_descriptor!()` | Remove the current descriptor |
+
+### Construction
+
+| Expression | Result |
+|-----------|--------|
+| `CTPS(a, i)` | Variable $x_i$ expanded around $a$ |
+| `CTPS(a)` | Constant $a$ |
+| `CTPS(Float64)` | All-zero series (use as a pre-allocated output slot) |
+
+### Arithmetic operators
+
+All operators create a new `CTPS`:
+
+```
+f + g,  f - g,  f * g,  -f,  f^n   (n::Int)
+f + a,  a + f,  f - a,  a - f,  a*f,  f*a   (a::Real)
 ```
 
-### TPSADesc
+### Mathematical functions
 
-The descriptor contains:
-- Polynomial index mapping (PolyMap)
-- Multiplication schedules (optimized for CPU and GPU)
-- Reverse lookup tables
-- Cached computation plans
+| Allocating | In-place | Notes |
+|-----------|---------|-------|
+| `exp(f)` | `exp!(out, f)` | |
+| `log(f)` | `log!(out, f)` | requires `cst(f) > 0` |
+| `sqrt(f)` | `sqrt!(out, f)` | requires `cst(f) > 0` |
+| `pow(f, n)` | `pow!(out, f, n)` | integer `n` |
+| `sin(f)` | `sin!(out, f)` | |
+| `cos(f)` | `cos!(out, f)` | |
+| `tan(f)` | — | |
+| `asin(f)` | — | |
+| `acos(f)` | — | |
+| `sinh(f)` | `sinh!(out, f)` | |
+| `cosh(f)` | `cosh!(out, f)` | |
 
-Descriptors are automatically cached and reused for efficiency.
+### In-place arithmetic (zero allocation)
 
-## Operations
+| Function | Effect |
+|---------|--------|
+| `add!(out, a, b)` | `out = a + b` |
+| `add!(out, a, s)` | `out = a + s` (scalar `s`) |
+| `sub!(out, a, b)` | `out = a - b` |
+| `mul!(out, a, b)` | `out = a * b` |
+| `scale!(out, a, s)` | `out = s * a` |
+| `scaleadd!(out, s1, a, s2, b)` | `out = s1*a + s2*b` (fused) |
+| `addto!(a, b)` | `a += b` |
+| `subfrom!(a, b)` | `a -= b` |
+| `copy!(dest, src)` | Copy active range of `src` into `dest` |
+| `zero!(a)` | Zero all coefficients |
 
-### Arithmetic Operations
+### Coefficient access
 
-All standard arithmetic operations are supported:
+| Function | Description |
+|---------|-------------|
+| `cst(f)` | Constant term (`f.c[1]`) |
+| `element(f, exps)` | Coefficient for monomial with exponent vector `exps` |
+| `findindex(f, exps)` | Integer index of the monomial (use with `f.c[idx]`) |
+
+`exps` is a `Vector{Int}` of length `nv`; entry `i` is the power of variable $x_i$.
+
+To iterate over all active monomials, use `TPSA.getindexmap(desc.polymap, i)` which
+returns a view `[degree, e₁, e₂, …, eₙ]` for coefficient index `i`.
+
+## Zero-allocation patterns
+
+### Workspace pool
 
 ```julia
-# Addition and subtraction
-result = x + y
-result = x - y
-result = 2*x + 3*y
+ws = TPSAWorkspace(desc, 16)   # pool of 16 pre-allocated Float64 CTPS
 
-# Multiplication
-result = x * y
-result = (1 + x) * (1 + y)
-
-# Division (if implemented)
-result = x / y
-
-# Powers
-result = x^3
-result = (x + y)^2
+t1 = borrow!(ws)
+t2 = borrow!(ws)
+mul!(t1, a, a)           # t1 = a²
+mul!(t2, b, b)           # t2 = b²
+sub!(out, t1, t2)        # out = a² - b²
+release!(ws, t1)
+release!(ws, t2)
 ```
 
-### Comparison
+`release!` zeros only the active degree range (O(active)), not the full `N`-element
+vector, so it is near-free for small active sets.
+
+### `@tpsa` macro
+
+Compiles an arithmetic expression into the equivalent zero-allocation in-place call
+sequence.  Workspace slots are borrowed and released automatically.
 
 ```julia
-# Coefficients can be compared
-isapprox(tps1.c, tps2.c, rtol=1e-10)
+@tpsa ws  nx = cos(θ)*x1 + sin(θ)*(x2 + x1^2 - x3^2)
 ```
 
-## Mathematical Functions
+Supported operations: `+`, `-`, `*`, unary `-`, `^n` (Int),
+`sin`, `cos`, `exp`, `log`, `sqrt`, `sinh`, `cosh`.
 
-TPSA.jl supports a wide range of mathematical functions:
+## Performance notes
 
-### Exponential and Logarithmic
+### Coefficient count
+
+$$N = \binom{nv + d}{nv}$$
+
+| `nv` | `order` | $N$ |
+|------|---------|-----|
+| 2 | 6 | 28 |
+| 2 | 10 | 66 |
+| 4 | 6 | 210 |
+| 4 | 10 | 1 001 |
+| 6 | 10 | 8 008 |
+
+Choose the minimum order that captures the physics you care about.
+
+### Allocation cost
+
+Under **lazy-zero** allocation, creating a temporary `CTPS` costs only a `malloc`
+(no `memset`). The `degree_mask` bitmask tracks which degree blocks have been
+written; reads outside active blocks never occur.
+
+## Enzyme / AD interoperability
+
+TPSA.jl is compatible with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl)
+(and by extension with Zygote and other source-transformation AD tools that can
+differentiate through Julia's heap allocations).
+
+### What this enables
+
+| Level | Tool | What you get |
+|-------|------|--------------|
+| Phase-space variables | TPSA | Exact Taylor coefficients up to the chosen order |
+| Design parameters | Enzyme | First-order sensitivities of any map coefficient |
+
+For example, in beam physics:  TPSA computes the 6-th order transfer map;
+Enzyme gives you $\partial c_{ijk}/\partial\theta$ for any lattice parameter $\theta$.
+
+### Minimal example
+
 ```julia
-exp(x)      # Exponential
-log(x)      # Natural logarithm
-log10(x)    # Base-10 logarithm
-```
+using TPSA, Enzyme
 
-### Trigonometric
-```julia
-sin(x)      # Sine
-cos(x)      # Cosine
-tan(x)      # Tangent
-asin(x)     # Arcsine
-acos(x)     # Arccosine
-atan(x)     # Arctangent
-```
+# set_descriptor! must be called OUTSIDE the differentiated function.
+set_descriptor!(1, 3)         # ← outside
 
-### Hyperbolic
-```julia
-sinh(x)     # Hyperbolic sine
-cosh(x)     # Hyperbolic cosine
-tanh(x)     # Hyperbolic tangent
-```
+# f(x₀) = exp(x₀)  —  x₀ is both the expansion center and the parameter.
+# Analytically: d/dx₀ exp(x₀) = exp(x₀).
 
-### Power and Root
-```julia
-sqrt(x)     # Square root
-pow(x, n)   # Power function
-```
-
-## Examples
-
-See the `examples/` directory for comprehensive examples:
-
-1. **Basic Operations** - Addition, multiplication, polynomials
-2. **Math Functions** - Trigonometric, exponential, etc.
-3. **Evaluation** - Plugging in numerical values
-4. **Index Mapping** - Accessing specific coefficients
-5. **Derivatives** - Computing derivatives and integrals
-6. **Matrix Construction** - Building Jacobians and transfer matrices
-
-## API Reference
-
-### Core Functions
-
-#### `CTPS`
-```julia
-CTPS(value, nv, order, [var_index])
-```
-Create a TPSA object.
-
-#### `element`
-```julia
-element(tpsa::CTPS, index::Int) -> Number
-```
-Get coefficient at specific index.
-
-#### `findindex`
-```julia
-findindex(desc::TPSADesc, exponents) -> Int
-```
-Find index corresponding to monomial with given exponents.
-
-#### `assign!`
-```julia
-assign!(dest::CTPS, src::CTPS)
-```
-Copy coefficients from `src` to `dest`.
-
-### Mathematical Functions
-
-All functions from `Base` and `SpecialFunctions` that make sense for TPSA are supported:
-- `exp, log, sqrt, pow`
-- `sin, cos, tan, asin, acos, atan`
-- `sinh, cosh, tanh`
-- `+, -, *, /, ^`
-
-## Performance Tips
-
-### 1. Reuse Descriptors
-TPSA objects with the same `(nv, order)` automatically share descriptors. Create them consistently.
-
-### 2. Avoid Unnecessary Allocations
-```julia
-# Good: Reuse output
-result = CTPS(Float64, nv, order)
-TPSA.mul!(result, x, y)
-
-# Less optimal: Creates new object
-result = x * y
-```
-
-### 3. Order Selection
-- Use the minimum order needed for your analysis
-- Higher orders have exponentially more terms: $\binom{n+d}{d}$
-- For `nv=4, order=6`: 210 coefficients
-- For `nv=4, order=10`: 1001 coefficients
-
-### 4. Type Stability
-Use concrete types consistently:
-```julia
-# Good
-x = CTPS(Float64, nv, order)
-
-# Avoid type instability
-x = CTPS(some_dynamic_value, nv, order)
-```
-
-### 5. Parallel Computation
-TPSA.jl has thread-safe operations for parallel processing:
-```julia
-using Base.Threads
-@threads for i in 1:n
-    results[i] = compute_tpsa(inputs[i])
+function exp_value(x0::Float64)
+    t = CTPS(x0, 1)           # expansion around x₀
+    return cst(exp(t))         # = exp(x₀)
 end
+
+grad = Enzyme.gradient(Reverse, exp_value, 1.0)   # returns (exp(1),) ≈ (2.718,)
 ```
 
-## Advanced Topics
+### Rules
 
-### Index Mapping
+1. **Call `set_descriptor!` OUTSIDE the differentiated function.** Enzyme does
+   not re-execute task-local-storage mutations in its reverse pass.  Set the
+   descriptor once before calling `Enzyme.gradient` / `Enzyme.jacobian`.
 
-The package uses an efficient index-to-monomial mapping:
+2. **Use the expansion center as the differentiation parameter:**
+   `CTPS(x0, var_index)` where `x0` is the scalar parameter.
 
-```julia
-desc = tpsa.desc
-exp_vec = TPSA.getindexmap(desc.polymap, index)
-# exp_vec[1] = degree
-# exp_vec[2:end] = exponents for each variable
-```
+3. **Use the allocating forms** inside the differentiated function:
+   `exp`, `sin`, `cos`, `log`, `sqrt`, `sinh`, `cosh`, `+`, `-`, `*`, `/`, `^`.
 
-### Multiplication Schedules
+4. **Avoid `!`-variants inside differentiated code.** The in-place functions
+   (`exp!`, `sin!`, `mul!`, etc.) write into workspace-pool slots, which
+   involves mutation that Enzyme cannot trace through.
 
-Two schedule formats are available:
-- **Input-major**: Optimized for sequential CPU execution
-- **Output-major**: Optimized for parallel/GPU execution
+See [`examples/07_enzyme_ad.jl`](../examples/07_enzyme_ad.jl) for worked examples
+including multi-output Jacobians and finite-difference verification.
 
-### Composition
+## Contents
 
-Function composition is supported through direct evaluation:
-```julia
-# Compose h(g(x)) where g(x) = 1+x and h(u) = u^2
-g = 1 + x
-h = g^2  # Result is (1+x)^2
-```
-
-## Contributing
-
-Contributions are welcome! Please see the development guidelines in the repository.
-
-## References
-
-- Original C++ implementation: PyTPSA by Y. Hao
-- Julia port: Dr. Jinyu Wan (JuTrack package)
-- Current optimizations: Memory and performance improvements
-
-## License
-
-[Include license information]
-
-## Citation
-
-If you use TPSA.jl in your research, please cite:
-
-```bibtex
-[Citation information to be added]
-```
-
-## Support
-
-For questions and issues:
-- GitHub Issues: [repository URL]
-- Documentation: [docs URL]
-- Examples: See `examples/` directory
-
----
-
-*This documentation corresponds to TPSA.jl version X.Y.Z*
+- [Tutorial](tutorial.md) — step-by-step examples
+- [API Reference](api.md) — complete function and type documentation
+- [`examples/`](../examples/) — runnable Julia scripts
+- [`benchmarks/`](../benchmarks/) — performance measurement scripts

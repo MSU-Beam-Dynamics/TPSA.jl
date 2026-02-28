@@ -1,12 +1,21 @@
 name = "TPSA"
 uuid = "6f3fcde8-8165-4326-91a7-f7698485e8a3"
-authors = ["Yue Hao <haoyue@msu.edu>"]
 version = "0.1.0"
+authors = ["Yue Hao <haoyue@msu.edu>"]
 
 [deps]
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+GTPSA = "b27dd330-f138-47c5-815b-40db9dd9b6e8"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
-julia = "1.6"
+Enzyme = "0.13.129"
+GTPSA = "1.5.3"
 StaticArrays = "1"
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-358b-2791-21071af5b4e1"
+
+[targets]
+test = ["Test"]

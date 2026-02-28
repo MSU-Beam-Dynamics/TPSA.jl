@@ -48,13 +48,13 @@ end
 @testset "Schedule type stability" begin
     x = CTPS(1.0, 2, 3)
     desc = x.desc
-    
-    # Check schedule types
-    @test eltype(desc.mul[1].ivalues) == Int32
-    @test eltype(desc.mul[1].jidx) == Int32
-    @test eltype(desc.mul[1].kidx) == Int32
-    
-    @test eltype(desc.mul_output[1].kvalues) == Int32
-    @test eltype(desc.mul_output[1].iidx) == Int32
-    @test eltype(desc.mul_output[1].jidx) == Int32
+
+    # Check new 2D k-map schedule types
+    sched = desc.mul[1]
+    @test isa(sched.k_local, Matrix{Int32})
+    @test isa(sched.i_start, Int32)
+    @test isa(sched.j_start, Int32)
+    @test isa(sched.k_start, Int32)
+    @test isa(sched.Ni, Int32)
+    @test isa(sched.Nj, Int32)
 end

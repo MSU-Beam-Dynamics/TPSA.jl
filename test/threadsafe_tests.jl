@@ -14,15 +14,17 @@
     end
 end
 
-@testset "Independent descriptor instances" begin
-    # Different parameters should have different descriptors
-    x1 = CTPS(Float64, 2, 3)
-    x2 = CTPS(Float64, 2, 4)
-    x3 = CTPS(Float64, 3, 3)
-    
-    @test x1.desc !== x2.desc
-    @test x1.desc !== x3.desc
-    @test x2.desc !== x3.desc
+@testset "Global descriptor switching" begin
+    # After set_descriptor!, ctps.desc returns the new active descriptor
+    d1 = set_descriptor!(2, 3)
+    x = CTPS(Float64, 2, 3)
+    @test x.desc === d1
+
+    d2 = set_descriptor!(3, 4)
+    y = CTPS(Float64)
+    @test y.desc === d2
+    # x.desc also reflects the current global (no per-instance copy)
+    @test x.desc === d2
 end
 
 @testset "Descriptor immutability" begin

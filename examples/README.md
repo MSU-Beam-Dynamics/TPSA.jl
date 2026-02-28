@@ -48,6 +48,14 @@ Calculus operations:
 Building matrices from TPSA results:
 - Extracting Jacobian matrices (transfer matrices)
 - Building offset vectors
+
+### 07_enzyme_ad.jl
+Combining TPSA with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl) for nested AD:
+- Differentiating Taylor map coefficients w.r.t. scalar design parameters
+- Two levels of differentiation: TPSA (phase-space) + Enzyme (parameter sensitivity)
+- Multi-output Jacobians
+- Finite-difference verification
+- Notes on compatible (allocating) vs incompatible (in-place/pool) operations
 - Extracting higher-order tensors
 - Symplecticity checks
 - Applications in beam dynamics and nonlinear systems

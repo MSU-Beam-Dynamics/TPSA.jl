@@ -21,4 +21,12 @@ using TPSA
     @testset "Thread Safety" begin
         include("threadsafe_tests.jl")
     end
+
+    @testset "Math Functions" begin
+        include("mathfunc_tests.jl")
+    end
+
+    @testset "Arithmetic Accuracy" begin
+        include("arithmetic_tests.jl")
+    end
 end

@@ -84,9 +84,18 @@ end
     result = CTPS(Float64, nv, order)
     TPSA.mul!(result, x1, x2)
 
-    # Result should be non-zero and within reasonable range
-    @test !all(iszero, result.c)
+    # Result should be finite throughout
     @test all(isfinite, result.c)
+
+    # Verify several exact coefficients:
+    #   constant = x1.c[1] * x2.c[1] = 1 * 101 = 101
+    #   x1 coeff (idx 2): x1.c[1]*x2.c[2] + x1.c[2]*x2.c[1] = 1*102 + 2*101 = 304
+    #   x2 coeff (idx 3): x1.c[1]*x2.c[3] + x1.c[3]*x2.c[1] = 1*103 + 3*101 = 406
+    #   x3 coeff (idx 4): x1.c[1]*x2.c[4] + x1.c[4]*x2.c[1] = 1*104 + 4*101 = 508
+    @test result.c[1] ≈ 101.0
+    @test result.c[2] ≈ 304.0
+    @test result.c[3] ≈ 406.0
+    @test result.c[4] ≈ 508.0
 end
 
 @testset "Complex multiplication" begin
@@ -120,15 +129,22 @@ end
     x = CTPS(0.0, 1, nv, order)
     y = CTPS(0.0, 2, nv, order)
     
-    # Test * operator
+    # x * y = xy;  all other terms must be zero
     result = x * y
     
-    # x * y should give coefficient at xy term
     desc = result.desc
     for i in 1:desc.N
         exp_vec = TPSA.getindexmap(desc.polymap, i)
-        if exp_vec[1] == 2 && exp_vec[2] == 1 && exp_vec[3] == 1  # xy term
+        degree = exp_vec[1]
+        e1, e2 = exp_vec[2], exp_vec[3]
+        if degree == 2 && e1 == 1 && e2 == 1          # xy term
             @test result.c[i] ≈ 1.0
+        elseif degree == 0                              # constant
+            @test result.c[i] ≈ 0.0  atol=1e-15
+        elseif degree == 1                              # linear terms
+            @test result.c[i] ≈ 0.0  atol=1e-15
+        elseif degree == 2 && (e1 == 2 || e2 == 2)    # pure-square terms
+            @test result.c[i] ≈ 0.0  atol=1e-15
         end
     end
 end
