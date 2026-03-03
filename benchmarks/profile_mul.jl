@@ -1,5 +1,5 @@
 """
-Investigation of mul! bottleneck in TPSA.jl vs GTPSA
+Investigation of mul! bottleneck in PolySeries.jl vs GTPSA
 Checks: SIMD, memory, schedule size, access patterns
 """
 
@@ -7,17 +7,17 @@ using BenchmarkTools
 using Printf
 using InteractiveUtils   # for @code_native / @code_llvm
 
-include(joinpath(@__DIR__, "..", "src", "TPSA.jl"))
-using .TPSA
+include(joinpath(@__DIR__, "..", "src", "PolySeries.jl"))
+using .PolySeries
 
 # -------------------------------------------------------------------
 # Helper: create a DENSE CTPS (all degrees filled with random values)
 # so the degree_mask has all bits set and no inner-loop pairs are skipped
 # -------------------------------------------------------------------
 function dense_ctps(nv, order)
-    TPSA.clear_descriptor!()
-    TPSA.set_descriptor!(nv, order)
-    desc = TPSA.get_descriptor()
+    PolySeries.clear_descriptor!()
+    PolySeries.set_descriptor!(nv, order)
+    desc = PolySeries.get_descriptor()
     c = rand(Float64, desc.N)
     mask = (UInt64(1) << min(order+1, 63)) - UInt64(1)   # all degree bits set
     return CTPS{Float64}(c, desc, Ref(mask))
@@ -49,7 +49,7 @@ function bench_mul_dense(nv, order; samples=100)
     desc = a.desc
     total_fma = sum(length(s.k_local) for s in desc.mul)
     println("  Total FMAs: $total_fma")
-    t = @benchmark TPSA.mul!($r, $a, $b) samples=samples evals=1
+    t = @benchmark PolySeries.mul!($r, $a, $b) samples=samples evals=1
     med_ms = median(t).time / 1e6
     min_ms = minimum(t).time / 1e6
     fma_per_ns = total_fma / (median(t).time)
@@ -64,7 +64,7 @@ end
 function check_simd(a, b, r)
     println("\n--- LLVM IR for mul! (searching for vector ops) ---")
     buf = IOBuffer()
-    code_llvm(buf, TPSA.mul!, (typeof(r), typeof(a), typeof(b)); optimize=true)
+    code_llvm(buf, PolySeries.mul!, (typeof(r), typeof(a), typeof(b)); optimize=true)
     ir = String(take!(buf))
     has_fmul_vec = occursin("<2 x double>", ir) || occursin("<4 x double>", ir)
     has_gather   = occursin("gather", lowercase(ir))
@@ -92,8 +92,8 @@ bench_mul_dense(6, 12, samples=40)
 
 # SIMD check
 println()
-TPSA.clear_descriptor!()
-TPSA.set_descriptor!(4, 6)
+PolySeries.clear_descriptor!()
+PolySeries.set_descriptor!(4, 6)
 a_s = CTPS(1.0, 1); b_s = CTPS(1.0, 2); r_s = CTPS(0.0)
 check_simd(a_s, b_s, r_s)
 

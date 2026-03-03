@@ -1,5 +1,5 @@
 # Tests for type stability
-@testset "TPSADesc type stability" begin
+@testset "PSDesc type stability" begin
     x = CTPS(1.0, 1, 2, 3)
     desc = x.desc
 
@@ -37,12 +37,12 @@ end
     x1.c[1] = 1.0
     x2.c[1] = 2.0
     
-    TPSA.update_degree_mask!(x1)
-    TPSA.update_degree_mask!(x2)
+    PolySeries.update_degree_mask!(x1)
+    PolySeries.update_degree_mask!(x2)
     
     # Test type stability of mul! operation
     result = CTPS(Float64, nv, order)
-    @inferred TPSA.mul!(result, x1, x2)
+    @inferred PolySeries.mul!(result, x1, x2)
 end
 
 @testset "Schedule type stability" begin

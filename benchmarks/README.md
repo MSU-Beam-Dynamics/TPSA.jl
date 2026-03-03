@@ -1,4 +1,4 @@
-# TPSA.jl Benchmarks
+# PolySeries.jl Benchmarks
 
 This directory contains performance benchmarks for the TPSA package.
 

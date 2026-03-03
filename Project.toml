@@ -1,4 +1,4 @@
-name = "TPSA"
+name = "PolySeries"
 uuid = "6f3fcde8-8165-4326-91a7-f7698485e8a3"
 version = "0.1.0"
 authors = ["Yue Hao <haoyue@msu.edu>"]
@@ -11,7 +11,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 
 [extensions]
-TPSAEnzymeExt = "Enzyme"
+PolySeriesEnzymeExt = "Enzyme"
 
 [compat]
 Enzyme = "0.13"

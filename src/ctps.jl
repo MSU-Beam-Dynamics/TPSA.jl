@@ -59,8 +59,8 @@ function DescPool(N::Int)
 end
 
 # Phase-2 initialiser: populate pre-allocated CTPS wrappers once desc is known.
-# Called right after TPSADesc construction so pool.ctps[i] share bufs[i] and refs[i].
-function _init_desc_pools!(pools::Vector{DescPool}, desc)  # desc::TPSADesc (forward ref)
+# Called right after PSDesc construction so pool.ctps[i] share bufs[i] and refs[i].
+function _init_desc_pools!(pools::Vector{DescPool}, desc)  # desc::PSDesc (forward ref)
     for pool in pools
         for i in 1:CTPS_POOL_SIZE
             pool.ctps[i] = CTPS{Float64}(pool.bufs[i], pool.refs[i])
@@ -69,7 +69,7 @@ function _init_desc_pools!(pools::Vector{DescPool}, desc)  # desc::TPSADesc (for
 end
 
 # TPSA Descriptor - immutable, shared metadata
-struct TPSADesc
+struct PSDesc
     nv::Int                       # number of variables
     order::Int                    # maximum order
     N::Int                        # total number of coefficients
@@ -82,11 +82,11 @@ struct TPSADesc
     _pools::Vector{DescPool}      # per-thread coefficient buffer pools (Float64 only)
 end
 
-# Thread-safe cache for TPSADesc instances
-const DESC_CACHE = Dict{Tuple{Int,Int}, TPSADesc}()
+# Thread-safe cache for PSDesc instances
+const DESC_CACHE = Dict{Tuple{Int,Int}, PSDesc}()
 
 # Global default descriptor
-const GLOBAL_DESC = Ref{Union{TPSADesc, Nothing}}(nothing)
+const GLOBAL_DESC = Ref{Union{PSDesc, Nothing}}(nothing)
 
 """
     set_descriptor!(nv::Int, order::Int)
@@ -100,14 +100,14 @@ This should be called once at the beginning of your program.
 
 # Example
 ```julia
-using TPSA
+using PolySeries
 set_descriptor!(3, 4)  # 3 variables, order 4
 x = CTPS(0.0, 1)       # Create variable x
 y = CTPS(0.0, 2)       # Create variable y
 ```
 """
 function set_descriptor!(nv::Int, order::Int)
-    GLOBAL_DESC[] = TPSADesc(nv, order)
+    GLOBAL_DESC[] = PSDesc(nv, order)
     return GLOBAL_DESC[]
 end
 
@@ -134,7 +134,7 @@ end
 const DESC_CACHE_LOCK = ReentrantLock()
 
 # Constructor with caching (thread-safe)
-function TPSADesc(nv::Int, order::Int)
+function PSDesc(nv::Int, order::Int)
     key = (nv, order)
     
     # Thread-safe cache lookup: always acquire lock
@@ -195,7 +195,7 @@ function TPSADesc(nv::Int, order::Int)
         # Pre-allocate per-thread coefficient buffer pools (Float64 only)
         pools = [DescPool(N) for _ in 1:Threads.nthreads()]
 
-        desc = TPSADesc(nv, order, N, Nd, off, polymap, exp_to_idx, mul, comp_plan, pools)
+        desc = PSDesc(nv, order, N, Nd, off, polymap, exp_to_idx, mul, comp_plan, pools)
         _init_desc_pools!(pools, desc)   # phase-2: populate CTPS wrappers now that desc exists
         DESC_CACHE[key] = desc
         return desc
@@ -246,9 +246,9 @@ function build_mul_schedule_2d(polymap::PolyMap, exp_to_idx::Dict,
 end
 
 # CTPS — two fields only; the descriptor is NOT stored per-instance.
-# Removing the `desc::TPSADesc` field:
+# Removing the `desc::PSDesc` field:
 #   • Eliminates Enzyme's "constant stored into differentiable struct" error
-#     (TPSADesc is a large const struct that Enzyme cannot differentiate through)
+#     (PSDesc is a large const struct that Enzyme cannot differentiate through)
 #   • Reduces CTPS memory footprint (no redundant pointer per instance)
 #   • Matches the single-active-descriptor design: all live CTPS objects share
 #     the same global descriptor set by set_descriptor!(nv, order).
@@ -263,7 +263,7 @@ end
     s === :desc ? get_descriptor() : getfield(ctps, s)
 
 # Compute degree mask from coefficients
-function compute_degree_mask(c::Vector{T}, desc::TPSADesc) where T
+function compute_degree_mask(c::Vector{T}, desc::PSDesc) where T
     mask = UInt64(0)
     order = desc.order
     @inbounds for d in 0:order
@@ -301,15 +301,15 @@ end
     return result
 end
 
-# Fast internal constructors that reuse an existing TPSADesc (no lock acquisition).
-@inline function _ctps_constant(a::T, desc::TPSADesc) where T
+# Fast internal constructors that reuse an existing PSDesc (no lock acquisition).
+@inline function _ctps_constant(a::T, desc::PSDesc) where T
     c = Vector{T}(undef, desc.N)   # lazy: only c[1] is written
     c[1] = a
     mask = iszero(a) ? UInt64(0) : UInt64(1)
     return CTPS{T}(c, Ref(mask))
 end
 
-@inline function _ctps_zero(::Type{T}, desc::TPSADesc) where T
+@inline function _ctps_zero(::Type{T}, desc::PSDesc) where T
     return CTPS{T}(Vector{T}(undef, desc.N), Ref(UInt64(0)))
 end
 
@@ -329,7 +329,7 @@ end
 #   Zeros the CTPS's active range, returns the slot to the pool.
 #   No-op for idx == 0x00 (heap fallback; GC handles it).
 
-@inline function _ctps_pooled(::Type{Float64}, desc::TPSADesc)
+@inline function _ctps_pooled(::Type{Float64}, desc::PSDesc)
     tid = Threads.threadid()
     if tid <= length(desc._pools)
         pool = desc._pools[tid]
@@ -344,11 +344,11 @@ end
     return (UInt8(0), _ctps_zero(Float64, desc))   # fallback: heap
 end
 
-@inline function _ctps_pooled(::Type{T}, desc::TPSADesc) where T
+@inline function _ctps_pooled(::Type{T}, desc::PSDesc) where T
     return (UInt8(0), _ctps_zero(T, desc))         # non-Float64: heap
 end
 
-@inline function _ctps_pooled_copy(src::CTPS{Float64}, desc::TPSADesc)
+@inline function _ctps_pooled_copy(src::CTPS{Float64}, desc::PSDesc)
     tid = Threads.threadid()
     if tid <= length(desc._pools)
         pool = desc._pools[tid]
@@ -370,11 +370,11 @@ end
     return (UInt8(0), CTPS(src))   # fallback: heap
 end
 
-@inline function _ctps_pooled_copy(src::CTPS{T}, desc::TPSADesc) where T
+@inline function _ctps_pooled_copy(src::CTPS{T}, desc::PSDesc) where T
     return (UInt8(0), CTPS(src))
 end
 
-@inline function _pool_release!(idx::UInt8, ctps::CTPS{Float64}, desc::TPSADesc)
+@inline function _pool_release!(idx::UInt8, ctps::CTPS{Float64}, desc::PSDesc)
     idx == 0x00 && return
     tid = Threads.threadid()
     tid > length(desc._pools) && return
@@ -391,7 +391,7 @@ end
     return nothing
 end
 
-@inline function _pool_release!(::UInt8, ::CTPS, ::TPSADesc)
+@inline function _pool_release!(::UInt8, ::CTPS, ::PSDesc)
     return nothing   # non-Float64: let GC handle it
 end
 
@@ -436,7 +436,7 @@ end
 # of the coefficient slice that covers all non-zero degrees in `mask`.
 # Operating only on this range avoids touching zero pages for sparse CTPS.
 # -----------------------------------------------------------------------
-@inline function active_range_bounds(desc::TPSADesc, mask::UInt64)
+@inline function active_range_bounds(desc::PSDesc, mask::UInt64)
     mask == 0 && return (1, 0)   # empty range
     min_deg = trailing_zeros(mask) % Int
     max_deg = (63 - leading_zeros(mask)) % Int
@@ -962,12 +962,12 @@ function scaleadd!(result::CTPS{T}, a::T, c1::CTPS{T}, b::T, c2::CTPS{T}) where 
     return nothing
 end
 
-# ── TPSAWorkspace ─────────────────────────────────────────────────────────────
+# ── PSWorkspace ─────────────────────────────────────────────────────────────
 #
 # Pre-allocated pool of CTPS objects for zero-allocation user-level code.
 # Usage pattern:
 #
-#   ws  = TPSAWorkspace(desc, 16)    # pre-allocate 16 CTPS slots
+#   ws  = PSWorkspace(desc, 16)    # pre-allocate 16 CTPS slots
 #   t1  = borrow!(ws)               # obtain a zero CTPS from the pool
 #   mul!(t1, x[1], x[1])            # t1 = x1^2, no heap alloc
 #   ...                              # use t1 in further in-place ops
@@ -979,38 +979,38 @@ end
 #   • `borrow!` returns a CTPS{Float64} backed by a pre-allocated buffer.
 #   • `release!` zeros only the active degree range — O(active_range), not O(N).
 #   • The workspace is NOT thread-safe: create one per thread or protect access.
-mutable struct TPSAWorkspace
-    desc     :: TPSADesc
+mutable struct PSWorkspace
+    desc     :: PSDesc
     bufs     :: Vector{CTPS{Float64}}   # pre-allocated CTPS objects
     avail    :: Vector{Int}             # stack of available indices
     sp       :: Int                     # stack pointer (sp==length(bufs) → all free)
     id_to_idx :: Dict{UInt64, Int}      # objectid(ctps.c) → slot index, O(1) release
 end
 
-function TPSAWorkspace(desc::TPSADesc, n::Int = 32)
+function PSWorkspace(desc::PSDesc, n::Int = 32)
     bufs  = [CTPS{Float64}(zeros(Float64, desc.N), Ref(UInt64(0)))
              for _ in 1:n]
     avail = collect(1:n)
     id_to_idx = Dict{UInt64, Int}(objectid(bufs[i].c) => i for i in 1:n)
-    return TPSAWorkspace(desc, bufs, avail, n, id_to_idx)
+    return PSWorkspace(desc, bufs, avail, n, id_to_idx)
 end
 
-"""    borrow!(ws::TPSAWorkspace) -> CTPS{Float64}
+"""    borrow!(ws::PSWorkspace) -> CTPS{Float64}
 
 Obtain a zero CTPS from the workspace without heap allocation.
 Must be paired with `release!(ws, ctps)` when done."""
-@inline function borrow!(ws::TPSAWorkspace)
-    ws.sp == 0 && error("TPSAWorkspace exhausted — increase n at construction")
+@inline function borrow!(ws::PSWorkspace)
+    ws.sp == 0 && error("PSWorkspace exhausted — increase n at construction")
     idx  = ws.avail[ws.sp]
     ws.sp -= 1
     return ws.bufs[idx]
 end
 
-"""    release!(ws::TPSAWorkspace, ctps::CTPS{Float64})
+"""    release!(ws::PSWorkspace, ctps::CTPS{Float64})
 
 Return a borrowed CTPS slot to the workspace.
 Zeros only the active degree range before returning — O(active_range)."""
-@inline function release!(ws::TPSAWorkspace, ctps::CTPS{Float64})
+@inline function release!(ws::PSWorkspace, ctps::CTPS{Float64})
     dm = ctps.degree_mask[]
     if dm != 0
         (s, e) = active_range_bounds(ws.desc, dm)

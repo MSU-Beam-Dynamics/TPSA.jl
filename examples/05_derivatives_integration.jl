@@ -1,7 +1,7 @@
 # Composition, Derivatives, and Integration
 # Demonstrates differentiation, integration, and function composition
 
-using TPSA
+using PolySeries
 
 println("=== Derivatives, Integration, and Composition ===\n")
 
@@ -25,7 +25,7 @@ df_dx = CTPS(Float64)
 
 desc = f.desc
 for idx in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, idx)
+    exp_vec = PolySeries.getindexmap(desc.polymap, idx)
     degree = exp_vec[1]
     x_exp = exp_vec[2]
     y_exp = exp_vec[3]
@@ -37,7 +37,7 @@ for idx in 1:desc.N
         
         # Find the index for the new monomial
         for new_idx in 1:desc.N
-            new_exp_vec = TPSA.getindexmap(desc.polymap, new_idx)
+            new_exp_vec = PolySeries.getindexmap(desc.polymap, new_idx)
             if new_exp_vec[1] == new_degree && 
                new_exp_vec[2] == new_x_exp && 
                new_exp_vec[3] == y_exp
@@ -51,7 +51,7 @@ end
 # Display non-zero terms
 for idx in 1:desc.N
     if abs(df_dx.c[idx]) > 1e-10
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         x_exp = exp_vec[2]
         y_exp = exp_vec[3]
         monomial = "x^$x_exp y^$y_exp"
@@ -66,7 +66,7 @@ println("∂f/∂y (computed from coefficients):")
 df_dy = CTPS(Float64)
 
 for idx in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, idx)
+    exp_vec = PolySeries.getindexmap(desc.polymap, idx)
     degree = exp_vec[1]
     x_exp = exp_vec[2]
     y_exp = exp_vec[3]
@@ -76,7 +76,7 @@ for idx in 1:desc.N
         new_degree = degree - 1
         
         for new_idx in 1:desc.N
-            new_exp_vec = TPSA.getindexmap(desc.polymap, new_idx)
+            new_exp_vec = PolySeries.getindexmap(desc.polymap, new_idx)
             if new_exp_vec[1] == new_degree && 
                new_exp_vec[2] == x_exp && 
                new_exp_vec[3] == new_y_exp
@@ -89,7 +89,7 @@ end
 
 for idx in 1:desc.N
     if abs(df_dy.c[idx]) > 1e-10
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         x_exp = exp_vec[2]
         y_exp = exp_vec[3]
         monomial = "x^$x_exp y^$y_exp"
@@ -106,7 +106,7 @@ println("g(x,y) = x²")
 
 int_g = CTPS(Float64)
 for idx in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, idx)
+    exp_vec = PolySeries.getindexmap(desc.polymap, idx)
     degree = exp_vec[1]
     x_exp = exp_vec[2]
     y_exp = exp_vec[3]
@@ -116,7 +116,7 @@ for idx in 1:desc.N
         new_degree = degree + 1
         
         for new_idx in 1:desc.N
-            new_exp_vec = TPSA.getindexmap(desc.polymap, new_idx)
+            new_exp_vec = PolySeries.getindexmap(desc.polymap, new_idx)
             if new_exp_vec[1] == new_degree && 
                new_exp_vec[2] == new_x_exp && 
                new_exp_vec[3] == y_exp
@@ -130,7 +130,7 @@ end
 println("∫x² dx:")
 for idx in 1:desc.N
     if abs(int_g.c[idx]) > 1e-10
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         x_exp = exp_vec[2]
         y_exp = exp_vec[3]
         monomial = "x^$x_exp y^$y_exp"
@@ -151,7 +151,7 @@ h_of_g = g_x^2
 
 for idx in 1:min(10, desc.N)
     if abs(h_of_g.c[idx]) > 1e-10
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         x_exp = exp_vec[2]
         y_exp = exp_vec[3]
         monomial = "x^$x_exp y^$y_exp"

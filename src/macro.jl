@@ -1,7 +1,7 @@
 # ── @tpsa macro ───────────────────────────────────────────────────────────────
 #
 # Compiles a CTPS arithmetic assignment into zero-allocation in-place code
-# using a TPSAWorkspace.  Temporaries are borrowed from `ws` and released
+# using a PSWorkspace.  Temporaries are borrowed from `ws` and released
 # when no longer needed — the minimum number of borrows for the expression.
 #
 # Usage:
@@ -231,7 +231,7 @@ end
 Compile a TPSA arithmetic expression into zero-allocation in-place code,
 writing the result directly into the pre-allocated CTPS `lhs`.
 
-Temporaries are borrowed from `ws::TPSAWorkspace` and released automatically
+Temporaries are borrowed from `ws::PSWorkspace` and released automatically
 when no longer needed.  The number of simultaneous borrows equals the peak
 number of live intermediates in `expr`.
 
@@ -242,7 +242,7 @@ number of live intermediates in `expr`.
 
 # Example
 ```julia
-ws  = TPSAWorkspace(desc, 16)
+ws  = PSWorkspace(desc, 16)
 nx1 = CTPS(0.0, 1)
 cos_μ = cos(2π*0.205);  sin_μ = sin(2π*0.205)
 

@@ -1,6 +1,6 @@
-# TPSA.jl Documentation
+# PolySeries.jl Documentation
 
-TPSA.jl implements **Truncated Power Series Algebra** — a technique for computing
+PolySeries.jl implements **Truncated Power Series Algebra** — a technique for computing
 multivariate Taylor expansions of arbitrary functions to user-specified order.
 It overloads Julia's standard arithmetic operators and mathematical functions so
 that code written for plain numbers automatically computes exact Taylor series
@@ -39,13 +39,13 @@ See the **[Tutorial](tutorial.md)** for a step-by-step walkthrough.
 
 ```julia
 using Pkg
-Pkg.add("TPSA")
+Pkg.add("PolySeries")
 ```
 
 ## Basic workflow
 
 ```julia
-using TPSA
+using PolySeries
 
 # 1. Register the global descriptor (once per thread / session)
 set_descriptor!(3, 6)          # 3 independent variables, max order 6
@@ -69,8 +69,8 @@ println(element(f, [1,1,0]))   # ∂²f/(∂x ∂y)|₀
 
 `CTPS{T}` is the only type end users construct directly.  It holds the coefficient
 vector `c::Vector{T}` (length `desc.N`) and tracks which degree blocks are active
-via a `degree_mask` bitmask.  Everything else (`TPSADesc`, `TPSAWorkspace`) is
-either obtained from helper functions (`get_descriptor()`, `TPSAWorkspace(desc, n)`)
+via a `degree_mask` bitmask.  Everything else (`PSDesc`, `PSWorkspace`) is
+either obtained from helper functions (`get_descriptor()`, `PSWorkspace(desc, n)`)
 or used only in the advanced zero-allocation API.
 
 ## Key functions
@@ -141,7 +141,7 @@ f + a,  a + f,  f - a,  a - f,  a*f,  f*a   (a::Real)
 
 `exps` is a `Vector{Int}` of length `nv`; entry `i` is the power of variable $x_i$.
 
-To iterate over all active monomials, use `TPSA.getindexmap(desc.polymap, i)` which
+To iterate over all active monomials, use `PolySeries.getindexmap(desc.polymap, i)` which
 returns a view `[degree, e₁, e₂, …, eₙ]` for coefficient index `i`.
 
 ## Zero-allocation patterns
@@ -149,7 +149,7 @@ returns a view `[degree, e₁, e₂, …, eₙ]` for coefficient index `i`.
 ### Workspace pool
 
 ```julia
-ws = TPSAWorkspace(desc, 16)   # pool of 16 pre-allocated Float64 CTPS
+ws = PSWorkspace(desc, 16)   # pool of 16 pre-allocated Float64 CTPS
 
 t1 = borrow!(ws)
 t2 = borrow!(ws)
@@ -199,7 +199,7 @@ written; reads outside active blocks never occur.
 
 ## Enzyme / AD interoperability
 
-TPSA.jl is compatible with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl)
+PolySeries.jl is compatible with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl)
 (and by extension with Zygote and other source-transformation AD tools that can
 differentiate through Julia's heap allocations).
 
@@ -216,7 +216,7 @@ Enzyme gives you $\partial c_{ijk}/\partial\theta$ for any lattice parameter $\t
 ### Minimal example
 
 ```julia
-using TPSA, Enzyme
+using PolySeries, Enzyme
 
 # set_descriptor! must be called OUTSIDE the differentiated function.
 set_descriptor!(1, 3)         # ← outside
@@ -234,9 +234,9 @@ grad = Enzyme.gradient(Reverse, exp_value, 1.0)   # returns (exp(1),) ≈ (2.718
 
 ### Setup
 
-`using TPSA, Enzyme` is all that's needed. The `TPSAEnzymeExt` package
+`using PolySeries, Enzyme` is all that's needed. The `PolySeriesEnzymeExt` package
 extension is loaded automatically and registers the required `inactive_type`
-rules for all TPSA-internal types (`TPSADesc`, `DescPool`, `PolyMap`, etc.) —
+rules for all TPSA-internal types (`PSDesc`, `DescPool`, `PolyMap`, etc.) —
 no user-side setup required.
 
 ### Rules

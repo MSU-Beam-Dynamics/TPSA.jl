@@ -1,7 +1,7 @@
 # Basic TPSA Operations: Addition and Multiplication
 # This example demonstrates creating TPSA objects and performing basic arithmetic
 
-using TPSA
+using PolySeries
 
 # Set up the global descriptor once - all TPSA objects will use this
 set_descriptor!(3, 4)  # 3 variables, maximum order 4
@@ -49,7 +49,7 @@ println("  Constant: ", prod1.c[1])
 # Find the xy term (degree 2, exponents [0, 1, 1, 0])
 desc = prod1.desc
 for i in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, i)
+    exp_vec = PolySeries.getindexmap(desc.polymap, i)
     if exp_vec[1] == 2 && exp_vec[2] == 1 && exp_vec[3] == 1  # xy term
         println("  xy coeff: ", prod1.c[i])
     end
@@ -63,7 +63,7 @@ println("  Constant: ", prod2.c[1], " (expected 1)")
 println("  x coeff:  ", prod2.c[2], " (expected 1)")
 println("  y coeff:  ", prod2.c[3], " (expected 1)")
 for i in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, i)
+    exp_vec = PolySeries.getindexmap(desc.polymap, i)
     if exp_vec[1] == 2 && exp_vec[2] == 1 && exp_vec[3] == 1  # xy term
         println("  xy coeff: ", prod2.c[i], " (expected 1)")
     end
@@ -79,7 +79,7 @@ println("  x coeff:  ", poly.c[2])
 println("  y coeff:  ", poly.c[3])
 
 for i in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, i)
+    exp_vec = PolySeries.getindexmap(desc.polymap, i)
     if exp_vec[1] == 2
         if exp_vec[2] == 2  # x^2
             println("  x² coeff: ", poly.c[i])

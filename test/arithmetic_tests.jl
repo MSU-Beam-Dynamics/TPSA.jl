@@ -65,7 +65,7 @@ end
     p.c[3]                           = 2.0   # x₂
     p.c[findindex(p, [2, 2, 0])]     = 7.0   # x₁²
     # x₁x₂ and x₂² remain 0.0 from zeros-init
-    TPSA.update_degree_mask!(p)
+    PolySeries.update_degree_mask!(p)
 
     # cst returns constant term
     @test cst(p) ≈ 5.0
@@ -424,7 +424,7 @@ end
     x = CTPS(0.0, 1)
 
     # exp(x) truncated at order 3: coefficients match 1/k! for k=0..3
-    e = TPSA.exp(x)
+    e = PolySeries.exp(x)
     for k in 0:3
         @test element(e, [k, k]) ≈ 1.0 / factorial(k)   rtol=1e-14
     end

@@ -1,7 +1,7 @@
 # Index Mapping and Coefficient Access
 # Demonstrates how to find specific terms, map between indices and exponents
 
-using TPSA
+using PolySeries
 
 println("=== Index Mapping and Coefficient Access ===\n")
 
@@ -24,7 +24,7 @@ println("Index | Degree | x^i y^j z^k | Exponents")
 println("------|--------|-------------|----------")
 
 for idx in 1:min(15, desc.N)
-    exp_vec = TPSA.getindexmap(desc.polymap, idx)
+    exp_vec = PolySeries.getindexmap(desc.polymap, idx)
     degree = exp_vec[1]
     x_exp = exp_vec[2]
     y_exp = exp_vec[3]
@@ -47,7 +47,7 @@ println("\nNon-zero coefficients:")
 
 for idx in 1:desc.N
     if abs(poly.c[idx]) > 1e-10
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         x_exp = exp_vec[2]
         y_exp = exp_vec[3]
         z_exp = exp_vec[4]
@@ -65,7 +65,7 @@ target_z_exp = 0
 
 found_idx = 0
 for idx in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, idx)
+    exp_vec = PolySeries.getindexmap(desc.polymap, idx)
     if exp_vec[2] == target_x_exp && exp_vec[3] == target_y_exp && exp_vec[4] == target_z_exp
         found_idx = idx
         break
@@ -88,7 +88,7 @@ for target_degree in 0:min(3, desc.order)
     has_terms = false
     
     for idx in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         if exp_vec[1] == target_degree && abs(poly.c[idx]) > 1e-10
             has_terms = true
             x_exp = exp_vec[2]

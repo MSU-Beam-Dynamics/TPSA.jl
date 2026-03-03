@@ -1,7 +1,7 @@
 # Plugging in Numerical Values
 # Demonstrates how to evaluate TPSA at specific numerical points
 
-using TPSA
+using PolySeries
 
 println("=== Plugging in Numerical Values ===\n")
 
@@ -31,7 +31,7 @@ result += f.c[3] * y_val  # y term
 # Add second-order terms
 desc = f.desc
 for i in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, i)
+    exp_vec = PolySeries.getindexmap(desc.polymap, i)
     degree = exp_vec[1]
     
     if degree == 2
@@ -61,7 +61,7 @@ println()
 
 println("Quadratic terms:")
 for i in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, i)
+    exp_vec = PolySeries.getindexmap(desc.polymap, i)
     if exp_vec[1] == 2  # degree 2
         term_name = "x^$(exp_vec[2]) y^$(exp_vec[3]) z^$(exp_vec[4])"
         if f.c[i] != 0.0
@@ -78,7 +78,7 @@ println("--- Method 3: Partial Substitution ---")
 g = CTPS(Float64)
 
 for i in 1:desc.N
-    exp_vec = TPSA.getindexmap(desc.polymap, i)
+    exp_vec = PolySeries.getindexmap(desc.polymap, i)
     # Evaluate x component at x=0.5
     x_contribution = 0.5^exp_vec[2]
     

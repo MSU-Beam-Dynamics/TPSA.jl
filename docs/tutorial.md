@@ -1,6 +1,6 @@
-# TPSA.jl Tutorial
+# PolySeries.jl Tutorial
 
-A step-by-step introduction to the key features of TPSA.jl.
+A step-by-step introduction to the key features of PolySeries.jl.
 
 ---
 
@@ -9,7 +9,7 @@ A step-by-step introduction to the key features of TPSA.jl.
 Every session starts by registering a **global descriptor** that defines the number of variables and the maximum polynomial order.  All `CTPS` objects created afterward share this metadata automatically.
 
 ```julia
-using TPSA
+using PolySeries
 
 set_descriptor!(4, 6)   # 4 variables, maximum order 6
 desc = get_descriptor()
@@ -108,7 +108,7 @@ desc = f.desc
 for i in 1:desc.N
     v = f.c[i]
     iszero(v) && continue
-    exps = TPSA.getindexmap(desc.polymap, i)   # returns view [degree, e1, e2, e3]
+    exps = PolySeries.getindexmap(desc.polymap, i)   # returns view [degree, e1, e2, e3]
     println("degree=", exps[1], " exponents=", exps[2:end], " coeff=", v)
 end
 ```
@@ -153,7 +153,7 @@ display(J)
 
 ## 7. Zero-Allocation In-Place Operations
 
-For performance-critical loops (e.g. long-term tracking), allocating new `CTPS` objects at every step is expensive.  TPSA.jl provides in-place primitives and a workspace pool.
+For performance-critical loops (e.g. long-term tracking), allocating new `CTPS` objects at every step is expensive.  PolySeries.jl provides in-place primitives and a workspace pool.
 
 ### In-place arithmetic
 
@@ -173,10 +173,10 @@ scaleadd!(out, cos(0.5), a, sin(0.5), b)   # out = cos(θ)*a + sin(θ)*b (fused)
 
 ### Workspace pool
 
-`TPSAWorkspace` pre-allocates a pool of CTPS slots.  `borrow!` hands out a zeroed slot; `release!` returns it.
+`PSWorkspace` pre-allocates a pool of CTPS slots.  `borrow!` hands out a zeroed slot; `release!` returns it.
 
 ```julia
-ws  = TPSAWorkspace(desc, 16)   # pool of 16 Float64 CTPS objects
+ws  = PSWorkspace(desc, 16)   # pool of 16 Float64 CTPS objects
 
 t1 = borrow!(ws)
 t2 = borrow!(ws)
@@ -210,7 +210,7 @@ For complex expressions, writing the in-place chain manually is tedious.  The `@
 ```julia
 set_descriptor!(4, 6)
 desc = get_descriptor()
-ws   = TPSAWorkspace(desc, 20)
+ws   = PSWorkspace(desc, 20)
 
 x1 = CTPS(0.0,1); x2 = CTPS(0.0,2)
 x3 = CTPS(0.0,3); x4 = CTPS(0.0,4)
@@ -241,7 +241,7 @@ results = Vector{Float64}(undef, nthreads())
 @threads for tid in 1:nthreads()
     set_descriptor!(4, 6)           # thread-local initialization
     desc = get_descriptor()
-    ws   = TPSAWorkspace(desc, 16)
+    ws   = PSWorkspace(desc, 16)
     # ... compute ...
 end
 ```

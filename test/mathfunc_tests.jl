@@ -81,7 +81,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "exp" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.exp(x)
+        y    = PolySeries.exp(x)
         ref  = _ref_exp(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -103,7 +103,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "log" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.log(x)
+        y    = PolySeries.log(x)
         ref  = _ref_log(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -125,7 +125,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "sqrt" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.sqrt(x)
+        y    = PolySeries.sqrt(x)
         ref  = _ref_sqrt(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -160,7 +160,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "sin" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.sin(x)
+        y    = PolySeries.sin(x)
         ref  = _ref_sin(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -182,7 +182,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "cos" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.cos(x)
+        y    = PolySeries.cos(x)
         ref  = _ref_cos(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -204,7 +204,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "tan" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x = CTPS(MATHFUNC_A0, 1)
-        y = TPSA.tan(x)
+        y = PolySeries.tan(x)
         for h in TEST_HS
             @test _polyval(y, h) ≈ tan(MATHFUNC_A0 + h)  rtol=POINTWISE_TOL
         end
@@ -213,7 +213,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "sinh" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.sinh(x)
+        y    = PolySeries.sinh(x)
         ref  = _ref_sinh(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -235,7 +235,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
     @testset "cosh" begin
         set_descriptor!(1, MATHFUNC_ORDER)
         x    = CTPS(MATHFUNC_A0, 1)
-        y    = TPSA.cosh(x)
+        y    = PolySeries.cosh(x)
         ref  = _ref_cosh(MATHFUNC_A0, MATHFUNC_ORDER)
         for k in 0:MATHFUNC_ORDER
             @test element(y, [k]) ≈ ref[k+1]  atol=COEFF_TOL
@@ -276,9 +276,9 @@ const TEST_HS         = [0.001 * i for i in 1:5]
         # fn!(r, x) must match fn(x) exactly to within rounding across all fns
         set_descriptor!(1, MATHFUNC_ORDER)
         x = CTPS(MATHFUNC_A0, 1)
-        for (fn, fn!) in [(TPSA.exp, exp!), (TPSA.log, log!), (TPSA.sqrt, sqrt!),
-                          (TPSA.sin, sin!), (TPSA.cos, cos!),
-                          (TPSA.sinh, sinh!), (TPSA.cosh, cosh!)]
+        for (fn, fn!) in [(PolySeries.exp, exp!), (PolySeries.log, log!), (PolySeries.sqrt, sqrt!),
+                          (PolySeries.sin, sin!), (PolySeries.cos, cos!),
+                          (PolySeries.sinh, sinh!), (PolySeries.cosh, cosh!)]
             y = fn(x)
             r = CTPS(Float64);  fn!(r, x)
             for k in 0:MATHFUNC_ORDER
@@ -293,7 +293,7 @@ const TEST_HS         = [0.001 * i for i in 1:5]
         x1 = CTPS(0.0, 1)
         x2 = CTPS(0.0, 2)
         g  = 0.3 + 0.5 * x1 + 0.2 * x2^2
-        y  = TPSA.sin(g)
+        y  = PolySeries.sin(g)
         # Horner evaluation using only x1^k terms (x2 exponent = 0)
         ord = y.desc.order
         for h in TEST_HS

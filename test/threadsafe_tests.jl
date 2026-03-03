@@ -52,14 +52,14 @@ end
         x2.c[i] = Float64(i + 10)
     end
     
-    TPSA.update_degree_mask!(x1)
-    TPSA.update_degree_mask!(x2)
+    PolySeries.update_degree_mask!(x1)
+    PolySeries.update_degree_mask!(x2)
     
     # Perform multiplication multiple times
     # Each should produce identical results (deterministic)
     results = [begin
         r = CTPS(Float64, nv, order)
-        TPSA.mul!(r, x1, x2)
+        PolySeries.mul!(r, x1, x2)
         copy(r.c)
     end for _ in 1:5]
     

@@ -1,8 +1,8 @@
-# TPSA.jl
+# PolySeries.jl
 
 **Truncated Power Series Algebra for Julia**
 
-TPSA.jl computes multivariate Taylor expansions of arbitrary functions to high orders. It overloads all standard arithmetic operators and transcendental functions so that code written for ordinary `Float64` scalars also works for `CTPS` objects — producing exact Taylor series rather than single numbers.
+PolySeries.jl computes multivariate Taylor expansions of arbitrary functions to high orders. It overloads all standard arithmetic operators and transcendental functions so that code written for ordinary `Float64` scalars also works for `CTPS` objects — producing exact Taylor series rather than single numbers.
 
 ## Highlights
 
@@ -10,7 +10,7 @@ TPSA.jl computes multivariate Taylor expansions of arbitrary functions to high o
 - **[Enzyme.jl compatible](examples/07_enzyme_ad.jl)** — differentiate through TPSA computations to get sensitivities of Taylor coefficients w.r.t. scalar design parameters.
 - **Sparse degree-mask representation** — only active degree blocks are touched; constant-only inputs have near-zero overhead.
 - **Lazy-zero allocation** — temporaries use `undef` memory; the `degree_mask` invariant ensures garbage outside the active range is never read.
-- **Zero-allocation in-place API** — `mul!`, `add!`, `scaleadd!`, `pow!`, etc., plus `TPSAWorkspace` for pool-based temporary management.
+- **Zero-allocation in-place API** — `mul!`, `add!`, `scaleadd!`, `pow!`, etc., plus `PSWorkspace` for pool-based temporary management.
 - **`@tpsa` macro** — compiles an arithmetic expression into an optimal in-place call sequence, borrowing workspace slots automatically.
 - **Thread-safe** — per-thread descriptor and workspace pattern documented and tested.
 
@@ -18,14 +18,14 @@ TPSA.jl computes multivariate Taylor expansions of arbitrary functions to high o
 
 ```julia
 using Pkg
-Pkg.add("TPSA")          # once registered; until then:
-Pkg.add(url="https://github.com/your-org/TPSA.jl")
+Pkg.add("PolySeries")          # once registered; until then:
+Pkg.add(url="https://github.com/your-org/PolySeries.jl")
 ```
 
 ## Minimal example
 
 ```julia
-using TPSA
+using PolySeries
 
 set_descriptor!(2, 6)    # 2 variables, max order 6
 
@@ -82,7 +82,7 @@ log!(out, f);  sqrt!(out, f);  pow!(out, f, n)
 sinh!(out, f); cosh!(out, f)
 
 # Workspace pool
-ws = TPSAWorkspace(desc, 16)
+ws = PSWorkspace(desc, 16)
 t  = borrow!(ws)
 # ... use t ...
 release!(ws, t)

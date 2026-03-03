@@ -1,22 +1,22 @@
-# Tests for the TPSAEnzymeExt package extension.
+# Tests for the PolySeriesEnzymeExt package extension.
 # This file is only included when Enzyme is available (see runtests.jl).
 
 using Enzyme
 
-@testset "TPSAEnzymeExt — extension loads" begin
-    ext = Base.get_extension(TPSA, :TPSAEnzymeExt)
+@testset "PolySeriesEnzymeExt — extension loads" begin
+    ext = Base.get_extension(PolySeries, :PolySeriesEnzymeExt)
     @test ext !== nothing
 end
 
-@testset "TPSAEnzymeExt — inactive_type rules" begin
-    @test Enzyme.EnzymeRules.inactive_type(TPSA.TPSADesc)     == true
-    @test Enzyme.EnzymeRules.inactive_type(TPSA.DescPool)     == true
-    @test Enzyme.EnzymeRules.inactive_type(TPSA.PolyMap)      == true
-    @test Enzyme.EnzymeRules.inactive_type(TPSA.MulSchedule2D) == true
-    @test Enzyme.EnzymeRules.inactive_type(TPSA.CompPlan)     == true
+@testset "PolySeriesEnzymeExt — inactive_type rules" begin
+    @test Enzyme.EnzymeRules.inactive_type(PolySeries.PSDesc)     == true
+    @test Enzyme.EnzymeRules.inactive_type(PolySeries.DescPool)     == true
+    @test Enzyme.EnzymeRules.inactive_type(PolySeries.PolyMap)      == true
+    @test Enzyme.EnzymeRules.inactive_type(PolySeries.MulSchedule2D) == true
+    @test Enzyme.EnzymeRules.inactive_type(PolySeries.CompPlan)     == true
 end
 
-@testset "TPSAEnzymeExt — Enzyme.gradient through CTPS (single variable)" begin
+@testset "PolySeriesEnzymeExt — Enzyme.gradient through CTPS (single variable)" begin
     set_descriptor!(1, 4)
 
     # d/dx₀ exp(x₀) = exp(x₀)
@@ -32,7 +32,7 @@ end
     @test abs(g[1] - exp(0.5)) < 1e-12
 end
 
-@testset "TPSAEnzymeExt — Enzyme.gradient through CTPS (multi-variable)" begin
+@testset "PolySeriesEnzymeExt — Enzyme.gradient through CTPS (multi-variable)" begin
     set_descriptor!(2, 3)
 
     # ∂/∂x₀ [sin(x)*cos(y) + exp(x)] at (x₀,y₀) = cos(x₀)cos(y₀) + exp(x₀)

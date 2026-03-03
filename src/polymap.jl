@@ -1,5 +1,5 @@
 # ==============================================================================
-# This file is part of the TPSA (Truncated Power Series Algebra) Julia package.
+# This file is part of the PolySeries.jl Julia package.
 #
 # Author: Jinyu Wan
 # Email: wan@frib.msu.edu

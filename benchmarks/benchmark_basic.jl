@@ -1,5 +1,5 @@
 # Benchmark basic TPSA operations
-using TPSA
+using PolySeries
 using BenchmarkTools
 
 println("="^70)

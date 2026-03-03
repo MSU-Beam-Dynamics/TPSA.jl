@@ -7,7 +7,7 @@ Tests all math functions for:
   3. Performance: allocating vs in-place, across orders
 """
 
-using TPSA
+using PolySeries
 using BenchmarkTools
 using Printf
 
@@ -108,28 +108,28 @@ function run_accuracy(order::Int = 8)
 
     # (name, allocated fn, base fn for pointwise, ref coeff fn or nothing)
     tests = [
-        ("exp",   TPSA.exp,  Base.exp,  (a,o) -> ref_exp(a, o)),
-        ("log",   TPSA.log,  Base.log,  (a,o) -> ref_log(a, o)),
-        ("sqrt",  TPSA.sqrt, Base.sqrt, (a,o) -> ref_sqrt(a, o)),
+        ("exp",   PolySeries.exp,  Base.exp,  (a,o) -> ref_exp(a, o)),
+        ("log",   PolySeries.log,  Base.log,  (a,o) -> ref_log(a, o)),
+        ("sqrt",  PolySeries.sqrt, Base.sqrt, (a,o) -> ref_sqrt(a, o)),
         ("inv",   inv,       x -> 1/x,  (a,o) -> ref_inv(a, o)),
-        ("sin",   TPSA.sin,  Base.sin,  (a,o) -> ref_sin(a, o)),
-        ("cos",   TPSA.cos,  Base.cos,  (a,o) -> ref_cos(a, o)),
-        ("tan",   TPSA.tan,  Base.tan,  nothing),
-        ("sinh",  TPSA.sinh, Base.sinh, (a,o) -> ref_sinh(a, o)),
-        ("cosh",  TPSA.cosh, Base.cosh, (a,o) -> ref_cosh(a, o)),
+        ("sin",   PolySeries.sin,  Base.sin,  (a,o) -> ref_sin(a, o)),
+        ("cos",   PolySeries.cos,  Base.cos,  (a,o) -> ref_cos(a, o)),
+        ("tan",   PolySeries.tan,  Base.tan,  nothing),
+        ("sinh",  PolySeries.sinh, Base.sinh, (a,o) -> ref_sinh(a, o)),
+        ("cosh",  PolySeries.cosh, Base.cosh, (a,o) -> ref_cosh(a, o)),
         ("asin",  Base.asin, Base.asin, nothing),
         ("acos",  Base.acos, Base.acos, nothing),
     ]
 
     # In-place variants (result must match allocating version)
     inplace_tests = [
-        ("exp!",   exp!,   TPSA.exp,  (a,o) -> ref_exp(a, o)),
-        ("log!",   log!,   TPSA.log,  (a,o) -> ref_log(a, o)),
-        ("sqrt!",  sqrt!,  TPSA.sqrt, (a,o) -> ref_sqrt(a, o)),
-        ("sin!",   sin!,   TPSA.sin,  (a,o) -> ref_sin(a, o)),
-        ("cos!",   cos!,   TPSA.cos,  (a,o) -> ref_cos(a, o)),
-        ("sinh!",  sinh!,  TPSA.sinh, (a,o) -> ref_sinh(a, o)),
-        ("cosh!",  cosh!,  TPSA.cosh, (a,o) -> ref_cosh(a, o)),
+        ("exp!",   exp!,   PolySeries.exp,  (a,o) -> ref_exp(a, o)),
+        ("log!",   log!,   PolySeries.log,  (a,o) -> ref_log(a, o)),
+        ("sqrt!",  sqrt!,  PolySeries.sqrt, (a,o) -> ref_sqrt(a, o)),
+        ("sin!",   sin!,   PolySeries.sin,  (a,o) -> ref_sin(a, o)),
+        ("cos!",   cos!,   PolySeries.cos,  (a,o) -> ref_cos(a, o)),
+        ("sinh!",  sinh!,  PolySeries.sinh, (a,o) -> ref_sinh(a, o)),
+        ("cosh!",  cosh!,  PolySeries.cosh, (a,o) -> ref_cosh(a, o)),
     ]
 
     results = AccuracyResult[]
@@ -175,14 +175,14 @@ end
 
 function run_performance(configs; n_samples::Int = 150)
     fn_list = [
-        ("exp",   TPSA.exp,  exp!,   true ),
-        ("log",   TPSA.log,  log!,   true ),
-        ("sqrt",  TPSA.sqrt, sqrt!,  true ),
-        ("sin",   TPSA.sin,  sin!,   true ),
-        ("cos",   TPSA.cos,  cos!,   true ),
-        ("tan",   TPSA.tan,  nothing, false),
-        ("sinh",  TPSA.sinh, sinh!,  true ),
-        ("cosh",  TPSA.cosh, cosh!,  true ),
+        ("exp",   PolySeries.exp,  exp!,   true ),
+        ("log",   PolySeries.log,  log!,   true ),
+        ("sqrt",  PolySeries.sqrt, sqrt!,  true ),
+        ("sin",   PolySeries.sin,  sin!,   true ),
+        ("cos",   PolySeries.cos,  cos!,   true ),
+        ("tan",   PolySeries.tan,  nothing, false),
+        ("sinh",  PolySeries.sinh, sinh!,  true ),
+        ("cosh",  PolySeries.cosh, cosh!,  true ),
         ("asin",  Base.asin, nothing, false),
         ("acos",  Base.acos, nothing, false),
         ("inv",   inv,       nothing, false),
@@ -268,9 +268,9 @@ function main()
     # ── 3. Order scaling for all functions (nv=2) ────────────────────────────
     println("\n\n── 3. ORDER SCALING  (nv=2, alloc time in ms) ───────────────────────────")
     scale_fns = [
-        ("exp",  TPSA.exp),  ("log",  TPSA.log),  ("sqrt", TPSA.sqrt),
-        ("sin",  TPSA.sin),  ("cos",  TPSA.cos),  ("tan",  TPSA.tan),
-        ("sinh", TPSA.sinh), ("cosh", TPSA.cosh), ("asin", Base.asin),
+        ("exp",  PolySeries.exp),  ("log",  PolySeries.log),  ("sqrt", PolySeries.sqrt),
+        ("sin",  PolySeries.sin),  ("cos",  PolySeries.cos),  ("tan",  PolySeries.tan),
+        ("sinh", PolySeries.sinh), ("cosh", PolySeries.cosh), ("asin", Base.asin),
         ("inv",  inv),
     ]
     orders = [4, 6, 8, 10, 12]

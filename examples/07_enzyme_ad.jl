@@ -9,11 +9,11 @@
 # Requirements: add Enzyme once with
 #   import Pkg; Pkg.add("Enzyme")
 
-using TPSA
+using PolySeries
 using Enzyme
 using Printf
 
-println("=== TPSA + Enzyme: nested differentiation ===\n")
+println("=== PolySeries + Enzyme: nested differentiation ===\n")
 
 # ─── Key rule ───────────────────────────────────────────────────────────
 # set_descriptor! writes to task-local storage.  Enzyme does not re-execute
@@ -136,7 +136,7 @@ println("Example 5 passed ✓\n")
 
 # ─── Summary of rules ───────────────────────────────────────────────────────────────
 println("""
-Key rules for TPSA + Enzyme
+Key rules for PolySeries + Enzyme
 ────────────────────────────
 1. Call set_descriptor!(nv, order) OUTSIDE the function passed to Enzyme.
    Enzyme does not re-execute task-local storage mutations in its reverse pass.

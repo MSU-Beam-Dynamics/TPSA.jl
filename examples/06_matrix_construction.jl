@@ -1,7 +1,7 @@
 # Building a Truncated Matrix from TPSA Results
 # Demonstrates how to extract linear terms and build Jacobian/transfer matrices
 
-using TPSA
+using PolySeries
 using LinearAlgebra
 
 println("=== Building Matrices from TPSA Results ===\n")
@@ -55,7 +55,7 @@ for (row, output) in enumerate(outputs)
         # Find the linear term coefficient
         # Linear terms have degree=1 and single non-zero exponent
         for idx in 1:desc.N
-            exp_vec = TPSA.getindexmap(desc.polymap, idx)
+            exp_vec = PolySeries.getindexmap(desc.polymap, idx)
             if exp_vec[1] == 1  # degree 1 (linear)
                 if exp_vec[col+1] == 1  # This variable (col+1 because exp_vec[1] is degree)
                     jacobian[row, col] = output.c[idx]
@@ -92,7 +92,7 @@ for (i, output) in enumerate(outputs)
     
     term_count = 0
     for idx in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, idx)
+        exp_vec = PolySeries.getindexmap(desc.polymap, idx)
         if exp_vec[1] == 2 && abs(output.c[idx]) > 1e-10  # degree 2
             term_count += 1
             # Convert indices to variable names

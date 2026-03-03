@@ -1,7 +1,7 @@
 using Test
-using TPSA
+using PolySeries
 
-@testset "TPSA.jl" begin
+@testset "PolySeries.jl" begin
     @testset "PolyMap" begin
         include("polymap_tests.jl")
     end
@@ -30,11 +30,11 @@ using TPSA
         include("arithmetic_tests.jl")
     end
 
-    @testset "Extension: TPSAEnzymeExt" begin
+    @testset "Extension: PolySeriesEnzymeExt" begin
         try
             include("ext_enzyme_test.jl")
         catch e
-            @warn "Skipping TPSAEnzymeExt tests (Enzyme unavailable): $e"
+            @warn "Skipping PolySeriesEnzymeExt tests (Enzyme unavailable): $e"
         end
     end
 end

@@ -1,7 +1,7 @@
 using BenchmarkTools
 using Printf
 using Statistics
-using TPSA
+using PolySeries
 using GTPSA
 
 """
@@ -84,7 +84,7 @@ function henon_inplace_benchmark(nv::Int, order::Int, n_samples::Int=100)
 
     x  = [CTPS(0.0, i) for i in 1:nv]
     nx = [CTPS(0.0, i) for i in 1:nv]
-    ws = TPSAWorkspace(desc, 16)
+    ws = PSWorkspace(desc, 16)
 
     number_of_iterations = 10
     c1 = cos(2π * 0.205);  s1 = sin(2π * 0.205)

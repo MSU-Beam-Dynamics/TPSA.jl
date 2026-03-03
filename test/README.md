@@ -1,13 +1,13 @@
-# TPSA.jl Test Suite
+# PolySeries.jl Test Suite
 
-This directory contains the test suite for the TPSA.jl package, following Julia package conventions.
+This directory contains the test suite for the PolySeries.jl package, following Julia package conventions.
 
 ## Running Tests
 
 To run all tests:
 ```julia
 using Pkg
-Pkg.test("TPSA")
+Pkg.test("PolySeries")
 ```
 
 Or from the package directory:
@@ -17,7 +17,7 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 To run a specific test file:
 ```julia
-using Test, TPSA
+using Test, PolySeries
 include("test/polymap_tests.jl")
 ```
 

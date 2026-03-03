@@ -1,7 +1,7 @@
 # Mathematical Functions with TPSA
 # Demonstrates using mathematical functions (sin, cos, exp, log, etc.) with TPSA
 
-using TPSA
+using PolySeries
 
 println("=== Mathematical Functions ===\n")
 
@@ -19,13 +19,13 @@ y_val = 0.2
 
 println("--- Exponential and Logarithm ---")
 # exp(x)
-exp_x = TPSA.exp(x)
+exp_x = PolySeries.exp(x)
 println("exp(x) at x=0:")
 println("  Constant term: ", exp_x.c[1], " (expected 1.0)")
 println("  Linear term:   ", exp_x.c[2], " (expected 1.0)")
 
 # log(1 + x)
-log_expr = TPSA.log(1 + x)
+log_expr = PolySeries.log(1 + x)
 println("\nlog(1 + x) at x=0:")
 println("  Constant term: ", log_expr.c[1], " (expected 0.0)")
 println("  Linear term:   ", log_expr.c[2], " (expected 1.0)")
@@ -33,13 +33,13 @@ println()
 
 println("--- Trigonometric Functions ---")
 # sin(x)
-sin_x = TPSA.sin(x)
+sin_x = PolySeries.sin(x)
 println("sin(x) at x=0:")
 println("  Constant term: ", sin_x.c[1], " (expected 0.0)")
 println("  Linear term:   ", sin_x.c[2], " (expected 1.0)")
 
 # cos(x)
-cos_x = TPSA.cos(x)
+cos_x = PolySeries.cos(x)
 println("\ncos(x) at x=0:")
 println("  Constant term: ", cos_x.c[1], " (expected 1.0)")
 println("  Linear term:   ", cos_x.c[2], " (expected 0.0)")
@@ -47,13 +47,13 @@ println()
 
 println("--- Hyperbolic Functions ---")
 # sinh(x)
-sinh_x = TPSA.sinh(x)
+sinh_x = PolySeries.sinh(x)
 println("sinh(x) at x=0:")
 println("  Constant term: ", sinh_x.c[1], " (expected 0.0)")
 println("  Linear term:   ", sinh_x.c[2], " (expected 1.0)")
 
 # cosh(x)
-cosh_x = TPSA.cosh(x)
+cosh_x = PolySeries.cosh(x)
 println("\ncosh(x) at x=0:")
 println("  Constant term: ", cosh_x.c[1], " (expected 1.0)")
 println("  Linear term:   ", cosh_x.c[2], " (expected 0.0)")
@@ -61,13 +61,13 @@ println()
 
 println("--- Power Functions ---")
 # Square
-x_squared = TPSA.pow(x, 2)
+x_squared = PolySeries.pow(x, 2)
 println("x^2:")
 println("  Constant term: ", x_squared.c[1])
 println("  Linear term:   ", x_squared.c[2])
 
 # Square root of (1 + x)
-sqrt_expr = TPSA.sqrt(1 + x)
+sqrt_expr = PolySeries.sqrt(1 + x)
 println("\nsqrt(1 + x) at x=0:")
 println("  Constant term: ", sqrt_expr.c[1], " (expected 1.0)")
 println("  Linear term:   ", sqrt_expr.c[2], " (expected 0.5)")
@@ -75,7 +75,7 @@ println()
 
 println("--- Combined Operations ---")
 # Complex expression: exp(x) * sin(y)
-result = TPSA.exp(x) * TPSA.sin(y)
+result = PolySeries.exp(x) * PolySeries.sin(y)
 println("exp(x) * sin(y) at x=0, y=0:")
 println("  Constant term: ", result.c[1], " (expected 0.0)")
 println("  x coefficient: ", result.c[2], " (expected 0.0)")

@@ -1,5 +1,5 @@
 # Benchmark multiplication performance
-using TPSA
+using PolySeries
 using Printf
 using BenchmarkTools
 
@@ -30,8 +30,8 @@ for (nv, order, desc_str) in test_cases
         x.c[i] = rand()
         y.c[i] = rand()
     end
-    TPSA.update_degree_mask!(x)
-    TPSA.update_degree_mask!(y)
+    PolySeries.update_degree_mask!(x)
+    PolySeries.update_degree_mask!(y)
     
     # Create polynomial test cases
     a = CTPS(1.0)

@@ -1,6 +1,6 @@
-# TPSA.jl Documentation
+# PolySeries.jl Documentation
 
-Official package documentation for TPSA.jl (Truncated Power Series Algebra).
+Official package documentation for PolySeries.jl (Truncated Power Series Algebra).
 
 ## Documentation Files
 

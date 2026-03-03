@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for all public types and functions in TPSA.jl.
+Complete reference for all public types and functions in PolySeries.jl.
 
 ---
 
@@ -13,7 +13,7 @@ The core type representing a truncated power series with coefficient type `T`.
 ```julia
 struct CTPS{T}
     c           :: Vector{T}       # coefficient vector, length desc.N
-    desc        :: TPSADesc        # shared descriptor
+    desc        :: PSDesc        # shared descriptor
     degree_mask :: Ref{UInt64}     # bitmask — bit k set iff degree-k block is active
 end
 ```
@@ -33,12 +33,12 @@ All constructors use the descriptor registered with `set_descriptor!`.
 
 ---
 
-### `TPSADesc`
+### `PSDesc`
 
 Descriptor holding shared metadata for a TPSA space `(nv, order)`.
 
 ```julia
-struct TPSADesc
+struct PSDesc
     nv        :: Int                    # number of variables
     order     :: Int                    # maximum total degree
     N         :: Int                    # total coefficient count = C(nv+order, nv)
@@ -57,16 +57,16 @@ Obtain via `get_descriptor()` after calling `set_descriptor!`.
 - `desc.N` — total number of coefficients per series
 - `desc.nv`, `desc.order` — space parameters
 - `desc.off[d+1]` — 1-based start of degree-`d` block in coefficient vector
-- `TPSA.getindexmap(desc.polymap, i)` — exponent info for coefficient index `i`
+- `PolySeries.getindexmap(desc.polymap, i)` — exponent info for coefficient index `i`
 
 ---
 
-### `TPSAWorkspace`
+### `PSWorkspace`
 
 Pre-allocated pool of `CTPS{Float64}` objects for zero-allocation in-place code.
 
 ```julia
-ws = TPSAWorkspace(desc::TPSADesc, n::Int = 32)
+ws = PSWorkspace(desc::PSDesc, n::Int = 32)
 ```
 
 Creates a pool of `n` CTPS slots of the same shape as `desc`.
@@ -75,7 +75,7 @@ Creates a pool of `n` CTPS slots of the same shape as `desc`.
 
 ### `PolyMap`
 
-Internal mapping structure (accessed via `TPSADesc`).
+Internal mapping structure (accessed via `PSDesc`).
 
 ```julia
 struct PolyMap
@@ -205,7 +205,7 @@ temporary and processes both inputs in a single pass.
 ## Workspace pool
 
 ```julia
-ws = TPSAWorkspace(desc, n)    # create pool of n Float64 CTPS slots
+ws = PSWorkspace(desc, n)    # create pool of n Float64 CTPS slots
 t  = borrow!(ws)               # get a zeroed CTPS from the pool
 release!(ws, t)                # return t to pool (active range zeroed)
 ```
@@ -225,7 +225,7 @@ release!(ws, t)                # return t to pool (active range zeroed)
 
 Compiles `expr` into a sequence of zero-allocation in-place calls, writing the
 final result into the pre-allocated `CTPS` object `lhs`.  Temporaries are
-borrowed from `ws::TPSAWorkspace` and released as soon as they are no longer
+borrowed from `ws::PSWorkspace` and released as soon as they are no longer
 needed.
 
 **Supported operations in `expr`:**
@@ -260,7 +260,7 @@ Return the 1-based index into `f.c` for the monomial described by `exps`.
 The index can be reused with `f.c[idx]` directly.
 
 ```julia
-TPSA.getindexmap(desc.polymap, i::Int) -> view
+PolySeries.getindexmap(desc.polymap, i::Int) -> view
 ```
 Return a view `[degree, e₁, e₂, …, e_nv]` for coefficient index `i`.
 Useful for iterating over all monomials:
@@ -268,7 +268,7 @@ Useful for iterating over all monomials:
 ```julia
 for i in 1:desc.N
     v = f.c[i]; iszero(v) && continue
-    row = TPSA.getindexmap(desc.polymap, i)
+    row = PolySeries.getindexmap(desc.polymap, i)
     # row[1] = total degree; row[k+1] = exponent of variable k
 end
 ```
@@ -293,7 +293,7 @@ Reset `ctps` to the variable $x_{var\_index}$ at expansion point `a`
 ## Descriptor utilities
 
 ```julia
-TPSA.decomposite(n::Int, dim::Int) -> Vector{Int}
+PolySeries.decomposite(n::Int, dim::Int) -> Vector{Int}
 ```
 Decompose coefficient index `n` (0-based) into an exponent vector of length `dim+1`:
 entry 1 is the total degree, entries 2…dim+1 are per-variable exponents.
@@ -312,14 +312,14 @@ entry 1 is the total degree, entries 2…dim+1 are per-variable exponents.
 
 ## Enzyme / AD interoperability
 
-TPSA.jl is compatible with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl).
+PolySeries.jl is compatible with [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl).
 Enzyme can differentiate *through* TPSA computations, giving exact
 first-order sensitivities of any Taylor coefficient with respect to scalar
 "design" parameters.
 
 ### Setup
 
-`using TPSA, Enzyme` is sufficient. The `TPSAEnzymeExt` package extension
+`using PolySeries, Enzyme` is sufficient. The `PolySeriesEnzymeExt` package extension
 loads automatically and registers `inactive_type` rules for all TPSA-internal
 types — no call to `EnzymeRules.inactive_type` is needed in user code.
 
@@ -351,7 +351,7 @@ Enzyme differentiation.
 ### Usage pattern
 
 ```julia
-using TPSA, Enzyme
+using PolySeries, Enzyme
 
 # set_descriptor! must be called OUTSIDE the differentiated function.
 set_descriptor!(1, 4)          # ← outside

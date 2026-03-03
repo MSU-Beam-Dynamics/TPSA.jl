@@ -12,13 +12,13 @@
 #        physical parameter θ (e.g., magnet strength, drift length).
 #      – Two supported frameworks:
 #          a) ForwardDiff.jl   — works out of the box; ZERO code changes needed.
-#          b) Enzyme.jl        — works via the TPSAEnzymeExt package extension.
+#          b) Enzyme.jl        — works via the PolySeriesEnzymeExt package extension.
 #
 # Dependencies (install once):
 #   julia> using Pkg; Pkg.add(["ForwardDiff", "BenchmarkTools", "Enzyme"])
 # ==============================================================================
 
-using TPSA
+using PolySeries
 using BenchmarkTools
 using Printf
 
@@ -141,8 +141,8 @@ display(b2); println()
 #
 #   c) Composing (b) with itself → d²f/dk² entirely within Enzyme.
 #
-# The TPSAEnzymeExt package extension (loaded automatically alongside Enzyme)
-# registers inactive_type rules for all TPSA-internal types (TPSADesc,
+# The PolySeriesEnzymeExt package extension (loaded automatically alongside Enzyme)
+# registers inactive_type rules for all TPSA-internal types (PSDesc,
 # DescPool, PolyMap, MulSchedule2D, CompPlan) — no user setup required.
 # ------------------------------------------------------------------------------
 
@@ -285,7 +285,7 @@ For differentiating TPSA map coefficients w.r.t. physical parameters:
     TPSA operations via the T-generic CTPS{T} type.
 
   • Use Enzyme.jl (Reverse mode) for first derivatives — automatic via the
-    TPSAEnzymeExt extension; use the expansion center as the parameter.
+    PolySeriesEnzymeExt extension; use the expansion center as the parameter.
 
   • Use Enzyme.jl double-Forward (Fwd∘Fwd) for second derivatives — pure
     Enzyme, no ForwardDiff needed.  Requires set_runtime_activity on both

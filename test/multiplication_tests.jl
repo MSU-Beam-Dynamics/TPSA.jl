@@ -15,11 +15,11 @@
     x2.c[2] = 5.0  # x coefficient
     x2.c[3] = 6.0  # y coefficient
 
-    TPSA.update_degree_mask!(x1)
-    TPSA.update_degree_mask!(x2)
+    PolySeries.update_degree_mask!(x1)
+    PolySeries.update_degree_mask!(x2)
 
     result = CTPS(Float64, nv, order)
-    TPSA.mul!(result, x1, x2)
+    PolySeries.mul!(result, x1, x2)
 
     @test result.c[1] ≈ 4.0   # constant
     @test result.c[2] ≈ 13.0  # x
@@ -28,7 +28,7 @@
     # Find second-order terms
     desc = result.desc
     for i in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, i)
+        exp_vec = PolySeries.getindexmap(desc.polymap, i)
         if exp_vec[1] == 2
             if exp_vec[2] == 2 && exp_vec[3] == 0  # x^2
                 @test result.c[i] ≈ 10.0
@@ -52,11 +52,11 @@ end
     x2.c[1] = 3.0
     x2.c[3] = 4.0
     
-    TPSA.update_degree_mask!(x1)
-    TPSA.update_degree_mask!(x2)
+    PolySeries.update_degree_mask!(x1)
+    PolySeries.update_degree_mask!(x2)
 
     out = CTPS(Float64, nv, order)
-    TPSA.mul!(out, x1, x2)
+    PolySeries.mul!(out, x1, x2)
 
     # Expected: (1 + 2x)(3 + 4y) = 3 + 6x + 4y + 8xy
     @test out.c[1] ≈ 3.0  # constant
@@ -78,11 +78,11 @@ end
         x2.c[i] = Float64(100 + i)
     end
     
-    TPSA.update_degree_mask!(x1)
-    TPSA.update_degree_mask!(x2)
+    PolySeries.update_degree_mask!(x1)
+    PolySeries.update_degree_mask!(x2)
 
     result = CTPS(Float64, nv, order)
-    TPSA.mul!(result, x1, x2)
+    PolySeries.mul!(result, x1, x2)
 
     # Result should be finite throughout
     @test all(isfinite, result.c)
@@ -111,11 +111,11 @@ end
     x2.c[1] = 5.0 + 6.0im
     x2.c[2] = 7.0 + 8.0im
     
-    TPSA.update_degree_mask!(x1)
-    TPSA.update_degree_mask!(x2)
+    PolySeries.update_degree_mask!(x1)
+    PolySeries.update_degree_mask!(x2)
     
     result = CTPS(ComplexF64, nv, order)
-    TPSA.mul!(result, x1, x2)
+    PolySeries.mul!(result, x1, x2)
     
     # (1+2i)(5+6i) = 5+6i+10i+12i² = 5+16i-12 = -7+16i
     @test real(result.c[1]) ≈ -7.0
@@ -134,7 +134,7 @@ end
     
     desc = result.desc
     for i in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, i)
+        exp_vec = PolySeries.getindexmap(desc.polymap, i)
         degree = exp_vec[1]
         e1, e2 = exp_vec[2], exp_vec[3]
         if degree == 2 && e1 == 1 && e2 == 1          # xy term

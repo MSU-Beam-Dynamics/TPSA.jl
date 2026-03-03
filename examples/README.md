@@ -1,4 +1,4 @@
-# TPSA.jl Examples
+# PolySeries.jl Examples
 
 This directory contains practical examples demonstrating how to use the TPSA package.
 
@@ -69,7 +69,7 @@ julia examples/01_basic_operations.jl
 
 Or include within a Julia session:
 ```julia
-using TPSA
+using PolySeries
 include("examples/02_math_functions.jl")
 ```
 
@@ -77,7 +77,7 @@ include("examples/02_math_functions.jl")
 
 Make sure TPSA is loaded:
 ```julia
-using TPSA
+using PolySeries
 ```
 
 Some examples may require additional packages:

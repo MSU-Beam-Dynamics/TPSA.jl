@@ -19,7 +19,7 @@
     # Check second-order terms
     desc = c.desc
     for i in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, i)
+        exp_vec = PolySeries.getindexmap(desc.polymap, i)
         degree = exp_vec[1]
         if degree == 2
             if exp_vec[2] == 2 && exp_vec[3] == 0  # x^2
@@ -52,7 +52,7 @@ end
 
     desc = c.desc
     for i in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, i)
+        exp_vec = PolySeries.getindexmap(desc.polymap, i)
         degree = exp_vec[1]
         if degree == 2 && exp_vec[2] == 1 && exp_vec[3] == 1  # xy
             @test c.c[i] ≈ 15.0
@@ -80,7 +80,7 @@ end
 
     desc = c.desc
     for i in 1:desc.N
-        exp_vec = TPSA.getindexmap(desc.polymap, i)
+        exp_vec = PolySeries.getindexmap(desc.polymap, i)
         degree = exp_vec[1]
         if degree == 2
             if exp_vec[2] == 2  # x^2
