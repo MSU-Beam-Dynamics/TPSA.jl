@@ -638,6 +638,22 @@ end
     return ctps.c[result]
 end
 
+# Defining callable instance
+function (ctps::CTPS{T})(args::T...) where T
+    if length(args) != ctps.desc.nv
+        error("Number of arguments does not match the number of variables in the CTPS")
+    end
+
+    return_value = ctps.c[1]  # Start with the constant term
+
+    for i in 2:length(ctps.c)
+        exponents = @view ctps.desc.polymap.map[i, 2:end]
+        return_value += ctps.c[i] * prod(args.^exponents)
+    end
+   
+    return return_value
+        
+end
 
 
 # Overloaded operations
