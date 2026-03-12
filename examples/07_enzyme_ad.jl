@@ -134,6 +134,44 @@ exact = -sin(x0) * cos(0.5)
 println("Example 5 passed ✓\n")
 
 
+# ─── Example 6: d/dx of sin(x)cos(x) + exp(x) w.r.t. the expansion term
+
+set_descriptor!(1, 10)
+
+x = CTPS(0.0, 1)
+f = sin(x) * cos(x) + exp(x)
+
+x0 = 0.5
+g_lc  = Enzyme.gradient(Reverse, f, x0)[1]
+exact = exp(x0) - sin(x0)^2 + cos(x0)^2
+@printf("∂/∂x[sin(x)cos(x) + exp(x)] at x=%.1f:  Enzyme = %.8f   exact = %.8f   ok = %s\n",
+        x0, g_lc, exact, abs(g_lc - exact) < 1e-6)
+@assert abs(g_lc - exact) < 1e-6
+println("Example 6 passed ✓\n")
+
+# ---- Example 7: ∂/∂w₀ of coefficient of sinusoidal expansion  ----
+# Coefficient of x³ in sin(w₀x₀)]:  -w₀³x₀³cos(w₀x₀)/6
+# ∂/∂w₀ = w₀³x₀sin(w₀x₀)/6 - w₀²cos(w₀x₀)/2
+
+set_descriptor!(1, 4)
+
+function sinwx(x0::Float64, w::Float64, k::Int)
+    x = CTPS(x0, 1)
+    return element(sin(w*x), [k])
+end
+
+x0 = 1/4
+w0 = 0.205*pi
+k0 = 3
+
+g_sinwx = Enzyme.gradient(Reverse, w0 -> sinwx(x0, w0, k0), w0)[1]
+exact = w0^3 * x0 * sin(w0*x0) / 6 - w0^2 * cos(w0*x0) / 2
+@printf("∂/∂w₀[coeff x³ of sin(w₀x₀)] at w₀=%.2f:  Enzyme = %.8f   exact = %.8f   ok = %s\n",
+        w0, g_sinwx, exact, abs(g_sinwx - exact) < 1e-10)
+@assert abs(g_sinwx - exact) < 1e-10
+println("Example 7 passed ✓\n")
+
+
 # ─── Summary of rules ───────────────────────────────────────────────────────────────
 println("""
 Key rules for PolySeries + Enzyme
