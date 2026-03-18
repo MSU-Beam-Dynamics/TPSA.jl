@@ -1148,6 +1148,10 @@ function mul!(result::CTPS{T}, ctps1::CTPS{T}, ctps2::CTPS{T}) where T
         dk_min = (trailing_zeros(mask1) + trailing_zeros(mask2)) % Int
         dk_max = min((63 - leading_zeros(mask1)) % Int +
                      (63 - leading_zeros(mask2)) % Int, order)
+        if dk_min > dk_max
+            result.degree_mask[] = UInt64(0)
+            return result
+        end
         out_s = desc.off[dk_min + 1]
         out_e = desc.off[dk_max + 1] + desc.Nd[dk_max + 1] - 1
         @inbounds @simd for i in out_s:out_e
