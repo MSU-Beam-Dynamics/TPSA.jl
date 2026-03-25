@@ -174,6 +174,7 @@ end
     t3 = p * (-1.0)
     @test _coeff2(t3, 0, 0) ≈ -2.0
     @test _coeff2(t3, 1, 0) ≈ -3.0
+    @test _coeff2(t3, 0, 1) ≈ -4.0
 end
 
 # ─── multiplication operator (full coefficient checks) ────────────────────────

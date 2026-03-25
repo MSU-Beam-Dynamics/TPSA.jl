@@ -1302,12 +1302,19 @@ end
 #   mono_img[i] = g[par_var[i]] * mono_img[par_idx[i]]   # one mul! per i ≥ 2
 #   result       = Σᵢ  f.c[i] * mono_img[i]              # via _add_scaled!
 #
-# par_idx / par_var are precomputed in desc.comp_plan at descriptor construction
-# time (build_comp_plan).  Each monomial image is computed exactly once.
+# par_idx / par_var are precomputed in desc.comp_plan (build_comp_plan).
+# par_idx[i] < i for all i ≥ 2 (deglex ordering), so a single forward pass
+# through [2..N] builds all images correctly.
 #
-# Memory: mono_img[i] is set to `nothing` as soon as all its children are
-# processed (reference counting via n_children), so the peak live image count
-# ≈ max(Nd[dk-1] + Nd[dk]) over all degrees — O(N/order) rather than O(N).
+# Enzyme compatibility:
+#   • mono_img is Vector{CTPS{T}} (typed), NOT Vector{Any} — Enzyme can
+#     build a proper shadow for each element and trace gradients through the
+#     coefficient vectors.
+#   • All images are kept alive until the function returns.  The early-release
+#     trick (setting to `nothing`) is incompatible with Enzyme's reverse pass,
+#     which needs to re-read primal values stored in the forward pass.
+#   • _ctps_constant / _ctps_zero allocate fresh heap CTPS objects (no pool),
+#     matching the pattern of sin/cos/exp which already work with Enzyme.
 #
 function compose!(result::CTPS{T}, f::CTPS{T}, g::AbstractVector{<:CTPS{T}}) where T
     desc  = f.desc
@@ -1324,38 +1331,40 @@ function compose!(result::CTPS{T}, f::CTPS{T}, g::AbstractVector{<:CTPS{T}}) whe
 
     # Constant term: result += f.c[1]
     if (fm & UInt64(1)) != 0 && !iszero(f.c[1])
-        result.c[1]        = f.c[1]
+        result.c[1]          = f.c[1]
         result.degree_mask[] |= UInt64(1)
     end
 
-    par_idx    = plan.par_idx
-    par_var    = plan.par_var
-    # Mutable per-call copy of n_children for in-place reference counting
-    ref_cnt    = copy(plan.n_children)
+    par_idx  = plan.par_idx
+    par_var  = plan.par_var
 
-    # mono_img[i] = g^(α_i)  — the image of the i-th monomial under g.
-    # Type Any allows setting to `nothing` for early GC release while keeping
-    # the ::CTPS{T} type assert on access for zero-overhead dispatch.
-    mono_img = Vector{Any}(nothing, N)
+    # Maximum degree present in f.  No monomial images beyond this are needed,
+    # and no f.c[i] reads beyond this range are safe (undef-allocated buffers
+    # are only initialized up to the active degree band by mul!/add!/etc.).
+    max_deg_f = (63 - leading_zeros(fm)) % Int
+    N_eff     = desc.off[max_deg_f + 1] + desc.Nd[max_deg_f + 1] - 1
+
+    # Typed container — required for Enzyme (must not be Vector{Any}).
+    # par_idx[i] < i (deglex ordering) guarantees mono_img[pi] is always
+    # written before being read as a parent.
+    mono_img = Vector{CTPS{T}}(undef, N_eff)
     mono_img[1] = _ctps_constant(one(T), desc)
 
-    @inbounds for i in 2:N
-        pv     = Int(par_var[i])
-        pi     = Int(par_idx[i])
-        parent = mono_img[pi]::CTPS{T}
-
+    @inbounds for i in 2:N_eff
+        pv  = Int(par_var[i])
+        pi  = Int(par_idx[i])
         img = _ctps_zero(T, desc)
-        mul!(img, g[pv], parent)
+        mul!(img, g[pv], mono_img[pi])
         mono_img[i] = img
+
+        # Guard: only read f.c[i] for degrees active in f.
+        # Coefficients outside the active degree band are uninitialized garbage
+        # (from the undef-allocated buffer used by _ctps_zero / mul! / etc.).
+        d = Int(desc.polymap.map[i, 1])
+        ((fm >> d) & UInt64(1)) == 0 && continue
 
         coeff = f.c[i]
         iszero(coeff) || _add_scaled!(result, img, coeff)
-
-        # Release parent once all its children have been processed
-        ref_cnt[pi] -= Int32(1)
-        if ref_cnt[pi] == 0
-            mono_img[pi] = nothing    # eligible for GC
-        end
     end
 
     return result

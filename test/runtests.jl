@@ -30,6 +30,10 @@ using PolySeries
         include("arithmetic_tests.jl")
     end
 
+    @testset "Composition" begin
+        include("composition_tests.jl")
+    end
+
     @testset "Extension: PolySeriesEnzymeExt" begin
         try
             include("ext_enzyme_test.jl")
